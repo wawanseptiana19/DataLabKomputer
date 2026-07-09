@@ -8,7 +8,6 @@
 <!-- Library resmi Supabase, dibutuhkan supaya kita bisa "berlangganan siaran
      langsung" (realtime) perubahan data, bukan cuma tanya sekali lalu selesai -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
   /* ===== CSS: tampilan seperti aplikasi Notepad sungguhan =====
@@ -281,43 +280,16 @@
 
   #input-isi{
     flex: 1;
-    overflow-y: auto;
+    border: none;
+    resize: none;
     padding: 8px 24px 24px 24px;
     font-size: 14.5px;
     line-height: 1.7;
-    font-family: "Segoe UI", Arial, sans-serif;
-  }
-  /* Placeholder buatan sendiri, karena div contenteditable gak punya
-     atribut placeholder bawaan seperti textarea/input */
-  #input-isi:empty:before{
-    content: attr(data-placeholder);
-    color: #a0aec0;
-    pointer-events: none;
-  }
-
-  /* Tabel hasil "Rapikan Spek PC": nama field DIBOLD dan rata otomatis
-     berkat display:table bawaan HTML, gak perlu itung-itung spasi lagi */
-  .tabel-spek{
-    border-collapse: collapse;
-    margin: 6px 0 14px 0;
-  }
-  .tabel-spek td{
-    padding: 3px 6px;
-    vertical-align: top;
-    font-size: 14.5px;
-  }
-  .tabel-spek td.sel-kunci{
-    white-space: nowrap;
-    color: var(--biru-tua);
-    padding-right: 2px;
-  }
-  .tabel-spek td.sel-titik-dua{
-    padding-left: 0;
-    padding-right: 0;
-    color: #718096;
-  }
-  .tabel-spek td.sel-nilai{
-    color: #1a202c;
+    /* Monospace supaya hasil "Rapikan Spek PC" (yang pakai spasi buat
+       meratakan kolom) benar-benar rata secara visual. Kalau pakai font
+       biasa (Segoe UI dkk), tiap huruf lebarnya beda-beda, jadi rapinya
+       cuma di kode, bukan di layar. */
+    font-family: "Consolas", "Courier New", monospace;
   }
   #input-isi:focus{ outline: none; }
 
@@ -349,7 +321,6 @@
       <!-- Input file disembunyikan, kita "pancing" klik-nya lewat tombol hijau di atas -->
       <input type="file" id="input-file-txt" accept=".txt,text/plain" style="display:none">
     </div>
-    <button class="btn-baru" id="btn-export-excel" style="margin:0 12px 12px 12px; background:#217346;">📊 Export ke Excel</button>
     <div class="filter-label" id="filter-label">
       <!-- Diisi otomatis: satu chip per label yang ada, plus "Semua" -->
     </div>
@@ -383,7 +354,7 @@
         <option value="perbaikan">Perbaikan</option>
       </select>
     </div>
-    <div id="input-isi" contenteditable="true" data-placeholder="Tulis catatanmu di sini..."></div>
+    <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
   </div>
 
   <!-- Tampil kalau belum ada catatan yang dipilih -->
@@ -912,23 +883,6 @@
         elIndikatorLive.classList.add('putus');
       }
     });
-
-  document.getElementById('btn-export-excel').addEventListener('click', function () {
-    const data = (labelAktif === null ? daftarCatatan : daftarCatatan.filter(c => (c.label || '').trim() === labelAktif))
-      .map(c => ({
-        Judul: c.judul || '',
-        Label: c.label || '',
-        Status: c.status || 'hidup',
-        Isi: c.isi || '',
-        'Diubah pada': c.diubah_pada ? new Date(c.diubah_pada).toLocaleString('id-ID') : ''
-      }));
-    if (data.length === 0) { alert('Tidak ada catatan untuk diexport.'); return; }
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 10 }, { wch: 50 }, { wch: 18 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Catatan');
-    XLSX.writeFile(wb, 'catatan' + (labelAktif ? '-' + labelAktif : '') + '.xlsx');
-  });
 
   // Mulai: ambil semua catatan begitu halaman dibuka
   muatSemuaCatatan();
