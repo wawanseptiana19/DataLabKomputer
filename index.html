@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Inventaris Lab Komputer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&family=JetBrains+Mono:wght=400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- QRious QR Code Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- Html5-QRCode Scanner Library (akses kamera) -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Notepad Lined Paper effect */
+        .notepad-paper {
+            background-color: #fdfdf6;
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 100% 2rem;
+            line-height: 2rem;
+            border-left: 4px solid #f59e0b; /* Notepad Amber Margin Line */
+        }
+        
+        .notepad-paper:focus {
+            background-color: #fffff9;
+            border-left-color: #d97706;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Header Section -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-inner flex items-center justify-center">
+                    <i class="fa-solid fa-laptop-code text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Inventaris Lab Komputer</h1>
+                    <p class="text-xs text-indigo-200">Manajemen Aset & Perlengkapan Sekolah</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Sistem Aktif
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Dashboard Statistics Cards (5 items in a beautiful responsive grid) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Card Total Items -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Barang</p>
+                    <h3 class="text-3xl font-bold text-slate-800" id="statTotal">0</h3>
+                </div>
+                <div class="bg-indigo-50 text-indigo-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                </div>
+            </div>
+            <!-- Card Good Condition -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kondisi Baik</p>
+                    <h3 class="text-3xl font-bold text-emerald-600" id="statBaik">0</h3>
+                </div>
+                <div class="bg-emerald-50 text-emerald-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-circle-check text-2xl"></i>
+                </div>
+            </div>
+            <!-- Card Idle -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kondisi Idle</p>
+                    <h3 class="text-3xl font-bold text-sky-600" id="statIdle">0</h3>
+                </div>
+                <div class="bg-sky-50 text-sky-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-circle-pause text-2xl"></i>
+                </div>
+            </div>
+            <!-- Card Light Damage -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rusak Ringan</p>
+                    <h3 class="text-3xl font-bold text-amber-600" id="statRusakRingan">0</h3>
+                </div>
+                <div class="bg-amber-50 text-amber-500 p-4 rounded-xl">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+            </div>
+            <!-- Card Heavy Damage -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rusak Berat</p>
+                    <h3 class="text-3xl font-bold text-rose-600" id="statRusakBerat">0</h3>
+                </div>
+                <div class="bg-rose-50 text-rose-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Actions Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Category Chart Container -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-indigo-500"></i> Sebaran Kategori
+                </h3>
+                <div class="relative flex-grow flex items-center justify-center min-h-[190px]">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Condition Chart Container -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-500"></i> Sebaran Kondisi
+                </h3>
+                <div class="relative flex-grow flex items-center justify-center min-h-[190px]">
+                    <canvas id="conditionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Toolbar & Controls -->
+            <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-500"></i> Panel Kontrol & Filter
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <!-- Pencarian -->
+                        <div class="sm:col-span-3 relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="searchInput" oninput="filterData()" placeholder="Cari barang, spesifikasi, ruangan..." class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+
+                        <!-- Filter Ruang -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Ruangan</label>
+                            <select id="filterRoom" onchange="filterData()" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="Semua">Semua Ruangan</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Kategori -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Kategori</label>
+                            <select id="filterCategory" onchange="filterData()" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="Semua">Semua Kategori</option>
+                                <!-- Categories dynamically loaded by JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filter Kondisi -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Kondisi</label>
+                            <select id="filterCondition" onchange="filterData()" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="Semua">Semua Kondisi</option>
+                                <option value="Baik">Baik</option>
+                                <option value="Idle">Idle (Cadangan)</option>
+                                <option value="Rusak Ringan">Rusak Ringan</option>
+                                <option value="Rusak Berat">Rusak Berat</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export / Import / Reset Buttons -->
+                <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100">
+                    <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-all text-xs">
+                        <i class="fa-solid fa-plus"></i> Tambah Barang
+                    </button>
+                    <button onclick="openCategoryModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
+                        <i class="fa-solid fa-tags"></i> Kelola Kategori
+                    </button>
+                    <button onclick="openScanModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
+                        <i class="fa-solid fa-camera"></i> Scan QR Barang
+                    </button>
+                    <button onclick="exportJSON()" class="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-xs">
+                        <i class="fa-solid fa-file-export text-slate-400"></i> Backup
+                    </button>
+                    <label class="cursor-pointer bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-xs">
+                        <i class="fa-solid fa-file-import text-slate-400"></i> Restore
+                        <input type="file" id="importFile" onchange="importJSON(event)" class="hidden" accept=".json">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory List Table Container -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-indigo-500"></i> Daftar Inventaris Lab
+                </h3>
+                <span class="text-xs text-slate-400 font-medium" id="itemCount">Menampilkan 0 barang</span>
+            </div>
+            
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-xs tracking-wider font-semibold">
+                            <th class="py-4 px-6">Nama Barang / Spesifikasi</th>
+                            <th class="py-4 px-6">Ruangan</th>
+                            <th class="py-4 px-6">Kondisi</th>
+                            <th class="py-4 px-6 text-center">Jumlah</th>
+                            <th class="py-4 px-6 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-100 text-sm">
+                        <!-- Items rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden p-12 text-center flex flex-col items-center justify-center space-y-3">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <h4 class="font-bold text-slate-700">Tidak ada perlengkapan ditemukan</h4>
+                <p class="text-xs text-slate-400 max-w-sm">Mulai isi daftar perlengkapan lab Anda dengan menekan tombol "Tambah Perlengkapan" di atas.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+            <p class="text-xs text-slate-400">&copy; 2026 Lab Komputer Sekolah. Seluruh Hak Cipta Dilindungi.</p>
+            <p class="text-[10px] text-indigo-400 font-medium">Dirancang dengan ❤️ menggunakan Tailwind CSS & LocalStorage</p>
+        </div>
+    </footer>
+
+    <!-- DETAIL SPECIFICATION MODAL -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-indigo-500"></i> Detail Lengkap Barang
+                </h3>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5 overflow-y-auto flex-grow bg-slate-50/50">
+                <!-- Info Cards Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Ruangan</span>
+                        <span id="detailRoom" class="text-sm font-semibold text-slate-700"></span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Kategori</span>
+                        <span id="detailCategory" class="text-sm font-semibold text-slate-700"></span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Kondisi</span>
+                        <div id="detailConditionBadge" class="mt-0.5"></div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Jumlah Unit</span>
+                        <span id="detailQuantity" class="text-sm font-bold text-indigo-600"></span>
+                    </div>
+                </div>
+
+                <!-- PC Identity Box (Conditional) -->
+                <div id="detailPcNameContainer" class="hidden bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between">
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] text-indigo-500 uppercase font-bold tracking-wider block">ID / Nama Unit PC</span>
+                        <span id="detailPcName" class="text-sm font-bold font-mono text-indigo-900"></span>
+                    </div>
+                    <div class="bg-indigo-600/10 text-indigo-600 p-2.5 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-desktop text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Notepad Style Specs -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Spesifikasi Detail</span>
+                        <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-note-sticky"></i> Kertas Notepad
+                        </span>
+                    </div>
+                    <div id="detailSpecsContent" class="w-full p-5 rounded-xl border border-amber-200 text-slate-800 font-mono text-xs shadow-inner notepad-paper whitespace-pre-wrap min-h-[160px] bg-[#fdfdf6]">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-1.5">
+                    <button onclick="copyDetailSpecs()" class="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm bg-white">
+                        <i class="fa-regular fa-copy"></i> Salin Spesifikasi
+                    </button>
+                    <button onclick="showQrCode()" class="px-4 py-2 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-indigo-600 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm bg-white">
+                        <i class="fa-solid fa-qrcode"></i> QR Code
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeDetailModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 text-xs font-semibold transition-colors bg-white">
+                        Tutup
+                    </button>
+                    <button id="detailEditBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-xs font-semibold transition-colors shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCAN QR CODE MODAL popup (cari barang via kamera) -->
+    <div id="scanModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl p-6 transform scale-95 transition-transform duration-300 space-y-4 flex flex-col items-center">
+            <div class="flex items-center justify-between w-full border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-indigo-500"></i> Scan QR Cari Barang
+                </h3>
+                <button onclick="closeScanModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="scanReaderContainer" class="w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-900 min-h-[220px] flex items-center justify-center">
+                <div id="scanReader" class="w-full"></div>
+            </div>
+
+            <p id="scanStatusText" class="text-xs text-slate-400 text-center">Arahkan kamera ke QR Code pada barang untuk mencarinya secara otomatis.</p>
+
+            <button onclick="closeScanModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm">Tutup</button>
+        </div>
+    </div>
+
+    <!-- QR CODE MODAL popup -->
+    <div id="qrModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl p-6 transform scale-95 transition-transform duration-300 space-y-4 flex flex-col items-center">
+            <div class="flex items-center justify-between w-full border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode text-indigo-500"></i> QR Code Barang
+                </h3>
+                <button onclick="closeQrModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center w-full">
+                <canvas id="qrCanvas" class="bg-white p-2 rounded-xl border border-slate-200 shadow-inner"></canvas>
+            </div>
+            <div class="text-center space-y-1 w-full">
+                <p class="text-xs font-bold text-slate-600 font-mono truncate max-w-[260px] mx-auto" id="qrItemTitle"></p>
+                <p class="text-[10px] text-slate-400 leading-normal max-w-[240px] mx-auto">Pindai kode QR di atas untuk melihat ID barang beserta spesifikasi lengkapnya secara langsung.</p>
+            </div>
+            <div class="flex w-full justify-center gap-2 pt-2">
+                <button onclick="downloadQrCode()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> Unduh QR
+                </button>
+                <button onclick="closeQrModal()" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT FORM MODAL -->
+    <div id="itemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-indigo-500"></i> Tambah Perlengkapan
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body / Form -->
+            <form id="itemForm" onsubmit="saveItem(event)" class="p-6 space-y-4 overflow-y-auto flex-grow">
+                <input type="hidden" id="itemId">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Ruang -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Ruangan <span class="text-rose-500">*</span></label>
+                        <input type="text" id="itemRoom" placeholder="Misal: Ruang 1" required list="roomSuggestions" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <datalist id="roomSuggestions">
+                            <option value="Ruang 1">
+                            <option value="Ruang 2">
+                            <option value="Ruang Utama">
+                        </datalist>
+                    </div>
+                    <!-- Kategori -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Kategori <span class="text-rose-500">*</span></label>
+                        <select id="itemCategory" onchange="togglePcNameField()" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                            <option value="" disabled selected>Pilih Kategori</option>
+                            <!-- Dynamically loaded -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Nama PC / ID Unit (Hanya muncul dinamis jika Kategori = PC) -->
+                <div id="pcNameWrapper" class="hidden transition-all duration-300">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nama PC / ID PC <span class="text-rose-500">*</span></label>
+                    <input type="text" id="itemPcName" placeholder="Misal: PC-LAB1-01" class="w-full px-3 py-2 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono bg-indigo-50/30">
+                </div>
+
+                <!-- Nama Barang / Spesifikasi (Notepad Style) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase">Nama Barang / Spesifikasi Lengkap <span class="text-rose-500">*</span></label>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" id="btnCleanSpecs" onclick="autoCleanSpecs()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl uppercase flex items-center gap-1.5 transition-all shadow-md">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Rapikan Otomatis
+                            </button>
+                            <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                                <i class="fa-solid fa-note-sticky"></i> Kertas Notepad
+                            </span>
+                        </div>
+                    </div>
+                    <textarea id="itemName" rows="9" placeholder="Tulis spesifikasi lengkap di sini...&#10;Contoh:&#10;- PC Rakitan Core i5&#10;- RAM 16GB, SSD 512GB&#10;- Monitor Samsung 24 Inch" required class="w-full px-4 py-2 rounded-xl border border-amber-200 text-slate-800 font-mono text-sm shadow-inner notepad-paper focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Gunakan tombol 'Enter' untuk menulis baris baru layaknya di notepad.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Jumlah -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Jumlah Unit <span class="text-rose-500">*</span></label>
+                        <input type="number" id="itemQuantity" min="1" placeholder="Misal: 1" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <!-- Kondisi -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Kondisi <span class="text-rose-500">*</span></label>
+                        <select id="itemCondition" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                            <option value="Baik">Baik</option>
+                            <option value="Idle">Idle (Cadangan)</option>
+                            <option value="Rusak Ringan">Rusak Ringan</option>
+                            <option value="Rusak Berat">Rusak Berat</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-medium transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium transition-all shadow-sm">
+                        Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CATEGORY MANAGEMENT MODAL -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-emerald-500"></i> Kelola Kategori
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4 flex flex-col overflow-y-auto">
+                <!-- Tambah Kategori Baru -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase">Tambah Kategori Baru</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="newCategoryInput" placeholder="Misal: Router, Projector..." class="flex-grow px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <button onclick="addCategory()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all text-sm shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Daftar Kategori Aktif -->
+                <div class="space-y-2 flex-grow flex flex-col min-h-[200px]">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase">Daftar Kategori Aktif</label>
+                    <div id="categoryListContainer" class="border border-slate-100 rounded-xl overflow-y-auto max-h-[280px] divide-y divide-slate-100 bg-slate-50/50">
+                        <!-- Categories list rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION DIALOG -->
+    <div id="confirmDialog" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl p-6 transform scale-95 transition-transform duration-300 space-y-4">
+            <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="text-center space-y-1">
+                <h3 class="font-bold text-slate-800 text-lg">Konfirmasi Hapus</h3>
+                <p class="text-xs text-slate-400">Apakah Anda yakin ingin menghapus barang ini secara permanen dari daftar inventaris?</p>
+            </div>
+            <div class="flex gap-3 justify-center">
+                <button id="cancelConfirmBtn" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-xs font-medium transition-colors">Batal</button>
+                <button id="okConfirmBtn" class="px-4 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 text-xs font-medium transition-colors shadow-sm">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none">
+        <!-- Toast elements dynamically injected here -->
+    </div>
+
+    <!-- CORE JAVASCRIPT LOGIC -->
+    <script>
+        // ===== Konfigurasi Supabase =====
+        const SUPABASE_URL = "https://qzdvdfebkzlwkhvxwsju.supabase.co/rest/v1";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZHZkZmVia3psd2todnh3c2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcyMTA4OTksImV4cCI6MjA1Mjc4Njg5OX0.Z9XKmX49vu0kZwn6YMom8QeLNNdKQMXCIkxcIoHKQFs";
+        const TABEL_BARANG = "barang";
+        const TABEL_KATEGORI = "kategori";
+
+        const headerDasar = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json"
+        };
+
+        const supabaseClient = window.supabase.createClient(
+            "https://qzdvdfebkzlwkhvxwsju.supabase.co",
+            SUPABASE_KEY
+        );
+
+        // Konversi baris tabel "barang" (Supabase, snake_case) -> objek item JS (camelCase)
+        function dariSupabaseBarang(row) {
+            return {
+                id: row.id,
+                name: row.name,
+                room: row.room,
+                category: row.category,
+                quantity: row.quantity,
+                condition: row.condition,
+                pcName: row.pc_name || undefined
+            };
+        }
+
+        // Konversi objek item JS -> payload untuk dikirim ke Supabase
+        function keSupabaseBarang(item) {
+            return {
+                name: item.name,
+                room: item.room,
+                category: item.category,
+                quantity: item.quantity,
+                condition: item.condition,
+                pc_name: item.pcName || null
+            };
+        }
+
+        // Core categories
+        const coreCategories = ['PC', 'Mouse', 'Keyboard', 'Kabel', 'Monitor', 'Lainnya'];
+
+        // Data utama sekarang disinkronkan langsung dengan Supabase (bukan localStorage lagi)
+        let categoriesList = [];
+        let inventoryItems = [];
+
+        // Mengambil seluruh data (barang & kategori) dari Supabase
+        async function muatSemuaData() {
+            try {
+                const [resBarang, resKategori] = await Promise.all([
+                    fetch(`${SUPABASE_URL}/${TABEL_BARANG}?select=*&order=created_at.asc`, { headers: headerDasar }),
+                    fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}?select=*&order=created_at.asc`, { headers: headerDasar })
+                ]);
+                if (!resBarang.ok || !resKategori.ok) throw new Error('Gagal memuat data dari Supabase');
+
+                const rowsBarang = await resBarang.json();
+                const rowsKategori = await resKategori.json();
+
+                inventoryItems = rowsBarang.map(dariSupabaseBarang);
+                categoriesList = rowsKategori.map(r => r.name);
+
+                updateStats();
+                updateCategoryChart();
+                updateConditionChart();
+                refreshDynamicDropdowns();
+                filterData();
+            } catch (kesalahan) {
+                showToast("Gagal terhubung ke Supabase. Cek koneksi & pengaturan tabel.", "danger");
+                console.error(kesalahan);
+            }
+        }
+        
+        let categoryChartInstance = null;
+        let conditionChartInstance = null;
+        let activeDetailItemId = null; // Menyimpan ID barang yang sedang dibuka di modal detail
+        let qrTextAktif = ''; // Menyimpan isi teks QR yang sedang ditampilkan (untuk nama file unduhan)
+
+        // Escape HTML to prevent injection
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Show Toast Notifications
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 p-4 rounded-xl shadow-lg border text-sm transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto bg-white`;
+            
+            let iconColor = 'text-indigo-500 bg-indigo-50 border-indigo-100';
+            let iconHtml = '<i class="fa-solid fa-info"></i>';
+
+            if (type === 'success') {
+                iconColor = 'text-emerald-500 bg-emerald-50 border-emerald-100';
+                iconHtml = '<i class="fa-solid fa-check-double"></i>';
+            } else if (type === 'danger') {
+                iconColor = 'text-rose-500 bg-rose-50 border-rose-100';
+                iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (type === 'info') {
+                iconColor = 'text-sky-500 bg-sky-50 border-sky-100';
+                iconHtml = '<i class="fa-solid fa-circle-info"></i>';
+            }
+
+            toast.innerHTML = `
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center border ${iconColor}">
+                    ${iconHtml}
+                </div>
+                <div class="flex-grow text-slate-700 font-medium">${message}</div>
+            `;
+
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Initialize / Update Category Chart
+        function updateCategoryChart() {
+            const counts = categoriesList.map(cat => {
+                return inventoryItems
+                    .filter(item => item.category === cat)
+                    .reduce((total, item) => total + parseInt(item.quantity || 0), 0);
+            });
+
+            const palette = [
+                '#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#94a3b8', 
+                '#8b5cf6', '#f97316', '#06b6d4', '#14b8a6', '#d946ef'
+            ];
+
+            const backgroundColors = categoriesList.map((_, index) => palette[index % palette.length]);
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            if (categoryChartInstance) {
+                categoryChartInstance.destroy();
+            }
+
+            categoryChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoriesList,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 8,
+                                font: { family: 'Inter', size: 10 },
+                                color: '#475569'
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Initialize / Update Condition Chart
+        function updateConditionChart() {
+            const conditions = ['Baik', 'Idle', 'Rusak Ringan', 'Rusak Berat'];
+            const counts = conditions.map(cond => {
+                return inventoryItems
+                    .filter(item => item.condition === cond)
+                    .reduce((total, item) => total + parseInt(item.quantity || 0), 0);
+            });
+
+            const colors = ['#10b981', '#38bdf8', '#f59e0b', '#f43f5e'];
+            const ctx = document.getElementById('conditionChart').getContext('2d');
+
+            if (conditionChartInstance) {
+                conditionChartInstance.destroy();
+            }
+
+            conditionChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: conditions,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 8,
+                                font: { family: 'Inter', size: 10 },
+                                color: '#475569'
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Update Statistics
+        function updateStats() {
+            const total = inventoryItems.reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const baik = inventoryItems.filter(item => item.condition === 'Baik').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const idle = inventoryItems.filter(item => item.condition === 'Idle').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const rusakRingan = inventoryItems.filter(item => item.condition === 'Rusak Ringan').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const rusakBerat = inventoryItems.filter(item => item.condition === 'Rusak Berat').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statBaik').innerText = baik;
+            document.getElementById('statIdle').innerText = idle;
+            document.getElementById('statRusakRingan').innerText = rusakRingan;
+            document.getElementById('statRusakBerat').innerText = rusakBerat;
+        }
+
+        // Render Categories and Room Filter/Suggestions Dynamically
+        function refreshDynamicDropdowns() {
+            // Re-render Filter Category Select Options
+            const filterCategorySelect = document.getElementById('filterCategory');
+            const currentFilterCategory = filterCategorySelect.value;
+            
+            filterCategorySelect.innerHTML = '<option value="Semua">Semua Kategori</option>';
+            categoriesList.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                filterCategorySelect.appendChild(opt);
+            });
+            if (categoriesList.includes(currentFilterCategory)) {
+                filterCategorySelect.value = currentFilterCategory;
+            } else {
+                filterCategorySelect.value = "Semua";
+            }
+
+            // Re-render Modal Item Category Select Options
+            const modalCategorySelect = document.getElementById('itemCategory');
+            const currentModalCategory = modalCategorySelect.value;
+
+            modalCategorySelect.innerHTML = '<option value="" disabled selected>Pilih Kategori</option>';
+            categoriesList.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                modalCategorySelect.appendChild(opt);
+            });
+            if (categoriesList.includes(currentModalCategory)) {
+                modalCategorySelect.value = currentModalCategory;
+            }
+
+            // Room dynamic updates
+            const roomFilter = document.getElementById('filterRoom');
+            const datalist = document.getElementById('roomSuggestions');
+            const currentSelectedRoom = roomFilter.value;
+
+            // Get unique rooms
+            const rooms = [...new Set(inventoryItems.map(item => item.room))].filter(Boolean).sort();
+            
+            roomFilter.innerHTML = '<option value="Semua">Semua Ruangan</option>';
+            rooms.forEach(room => {
+                const opt = document.createElement('option');
+                opt.value = room;
+                opt.textContent = room;
+                roomFilter.appendChild(opt);
+            });
+
+            if (rooms.includes(currentSelectedRoom)) {
+                roomFilter.value = currentSelectedRoom;
+            } else {
+                roomFilter.value = "Semua";
+            }
+
+            datalist.innerHTML = '';
+            rooms.forEach(room => {
+                const opt = document.createElement('option');
+                opt.value = room;
+                datalist.appendChild(opt);
+            });
+        }
+
+        // Filter and Render Data
+        function filterData() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const selectedRoom = document.getElementById('filterRoom').value;
+            const selectedCategory = document.getElementById('filterCategory').value;
+            const selectedCondition = document.getElementById('filterCondition').value;
+
+            const filteredItems = inventoryItems.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
+                                      item.room.toLowerCase().includes(searchQuery) ||
+                                      item.category.toLowerCase().includes(searchQuery);
+                const matchesRoom = selectedRoom === 'Semua' || item.room === selectedRoom;
+                const matchesCategory = selectedCategory === 'Semua' || item.category === selectedCategory;
+                const matchesCondition = selectedCondition === 'Semua' || item.condition === selectedCondition;
+
+                return matchesSearch && matchesRoom && matchesCategory && matchesCondition;
+            });
+
+            renderTable(filteredItems);
+        }
+
+        const categoryIcons = {
+            'PC': 'fa-solid fa-desktop bg-indigo-50 text-indigo-600 border border-indigo-100',
+            'Mouse': 'fa-solid fa-computer-mouse bg-blue-50 text-blue-600 border border-blue-100',
+            'Keyboard': 'fa-solid fa-keyboard bg-emerald-50 text-emerald-600 border border-emerald-100',
+            'Kabel': 'fa-solid fa-circle-nodes bg-amber-50 text-amber-500 border border-amber-100',
+            'Monitor': 'fa-solid fa-tv bg-pink-50 text-pink-600 border border-pink-100',
+            'Lainnya': 'fa-solid fa-box-open bg-slate-100 text-slate-500 border border-slate-200'
+        };
+
+        // Open Popup Modal with Details
+        function openDetailModal(id) {
+            const item = inventoryItems.find(item => item.id === id);
+            if (!item) return;
+
+            activeDetailItemId = id; // Set active ID untuk QR Code & Copy
+
+            // Load values to details modal
+            document.getElementById('detailRoom').innerText = item.room;
+            document.getElementById('detailCategory').innerText = item.category;
+            document.getElementById('detailQuantity').innerText = `${item.quantity} Unit`;
+            
+            // Set condition badge inside popup
+            const badgeContainer = document.getElementById('detailConditionBadge');
+            if (item.condition === 'Baik') {
+                badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Baik</span>`;
+            } else if (item.condition === 'Idle') {
+                badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>Idle</span>`;
+            } else if (item.condition === 'Rusak Ringan') {
+                badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Rusak Ringan</span>`;
+            } else {
+                badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rusak Berat</span>`;
+            }
+
+            // Handle PC identity container
+            const pcContainer = document.getElementById('detailPcNameContainer');
+            if (item.category === 'PC' && item.pcName) {
+                document.getElementById('detailPcName').innerText = item.pcName;
+                pcContainer.classList.remove('hidden');
+            } else {
+                pcContainer.classList.add('hidden');
+            }
+
+            // Specs text
+            document.getElementById('detailSpecsContent').innerText = item.name;
+
+            // Hook up quick edit action
+            const editBtn = document.getElementById('detailEditBtn');
+            editBtn.onclick = function() {
+                closeDetailModal();
+                setTimeout(() => {
+                    editItem(item.id);
+                }, 200);
+            };
+
+            // Animate popup open
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Copy specs to clipboard with fallback compatibility (as requested)
+        function copyDetailSpecs() {
+            const textToCopy = document.getElementById('detailSpecsContent').innerText;
+            const tempEl = document.createElement('textarea');
+            tempEl.value = textToCopy;
+            document.body.appendChild(tempEl);
+            tempEl.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempEl);
+            showToast("Detail spesifikasi berhasil disalin!", "success");
+        }
+
+        // Tampilkan QR Code untuk Item yang Sedang Dilihat
+        function showQrCode() {
+            if (!activeDetailItemId) return;
+            const item = inventoryItems.find(item => item.id === activeDetailItemId);
+            if (!item) return;
+
+            const canvas = document.getElementById('qrCanvas');
+            
+            // Format isi teks pemindaian QR Code:
+            // - Kategori PC     -> isi QR hanya Nama PC / ID PC
+            // - Selain PC       -> isi QR hanya Nama Barang / Spesifikasi Lengkap
+            let qrText = '';
+            if (item.category === 'PC' && item.pcName) {
+                qrText = item.pcName;
+                document.getElementById('qrItemTitle').innerText = item.pcName;
+            } else {
+                qrText = item.name;
+                document.getElementById('qrItemTitle').innerText = item.name.split('\n')[0];
+            }
+            qrTextAktif = qrText; // simpan agar bisa dipakai saat mengunduh
+
+            // Membangun QR Code menggunakan QRious Library
+            new QRious({
+                element: canvas,
+                value: qrText,
+                size: 200,
+                level: 'M' // Medium Error Correction
+            });
+
+            // Animasi buka QR Modal
+            const qrModal = document.getElementById('qrModal');
+            qrModal.classList.remove('hidden');
+            setTimeout(() => {
+                qrModal.classList.remove('opacity-0');
+                qrModal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeQrModal() {
+            const qrModal = document.getElementById('qrModal');
+            qrModal.classList.add('opacity-0');
+            qrModal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                qrModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Mengubah teks bebas menjadi nama file yang aman (tanpa karakter aneh)
+        function buatNamaFileAman(teks) {
+            return (teks || 'qr-barang')
+                .split('\n')[0]
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 60) || 'qr-barang';
+        }
+
+        // Unduh QR Code yang sedang ditampilkan, nama file mengikuti isinya
+        // (Nama PC untuk kategori PC, atau baris pertama Spesifikasi untuk selain PC)
+        function downloadQrCode() {
+            const canvas = document.getElementById('qrCanvas');
+            if (!canvas) return;
+
+            const namaFile = `qr-${buatNamaFileAman(qrTextAktif)}.png`;
+            const link = document.createElement('a');
+            link.download = namaFile;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("QR Code berhasil diunduh!", "success");
+        }
+
+        // ===== Scan QR Code (kamera) untuk mencari barang =====
+        let scannerAktif = null;
+        let sedangMemprosesScan = false;
+
+        function openScanModal() {
+            const modal = document.getElementById('scanModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+
+            document.getElementById('scanStatusText').textContent = 'Arahkan kamera ke QR Code pada barang untuk mencarinya secara otomatis.';
+            sedangMemprosesScan = false;
+
+            scannerAktif = new Html5Qrcode("scanReader");
+            const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+            scannerAktif.start(
+                { facingMode: "environment" },
+                config,
+                onScanBerhasil,
+                () => { /* dibiarkan kosong; kamera terus mencoba membaca */ }
+            ).catch(err => {
+                document.getElementById('scanStatusText').textContent = 'Tidak bisa mengakses kamera. Pastikan izin kamera sudah diizinkan di browser.';
+                console.error(err);
+            });
+        }
+
+        function closeScanModal() {
+            const modal = document.getElementById('scanModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+
+            if (scannerAktif) {
+                scannerAktif.stop().then(() => scannerAktif.clear()).catch(() => {});
+                scannerAktif = null;
+            }
+        }
+
+        // Dipanggil otomatis oleh library saat QR Code berhasil terbaca kamera
+        function onScanBerhasil(teksHasilScan) {
+            if (sedangMemprosesScan) return;
+            sedangMemprosesScan = true;
+
+            const teks = (teksHasilScan || '').trim();
+
+            // Cocokkan dengan Nama PC (kategori PC) atau Nama Barang/Spesifikasi (selain PC)
+            const barangDitemukan = inventoryItems.find(item =>
+                (item.pcName && item.pcName.trim() === teks) || item.name.trim() === teks
+            );
+
+            if (barangDitemukan) {
+                const namaTampil = barangDitemukan.pcName || barangDitemukan.name.split('\n')[0];
+                closeScanModal();
+
+                // Tampilkan barangnya di tabel & buka detail lengkapnya
+                document.getElementById('searchInput').value = namaTampil;
+                filterData();
+                setTimeout(() => openDetailModal(barangDitemukan.id), 300);
+                showToast(`Barang ditemukan: ${namaTampil}`, 'success');
+            } else {
+                document.getElementById('scanStatusText').textContent = 'QR Code tidak cocok dengan barang manapun di daftar. Coba lagi.';
+                showToast('Barang tidak ditemukan dari QR ini.', 'danger');
+            }
+
+            // Jeda sebentar agar tidak memproses kode QR yang sama berkali-kali
+            setTimeout(() => { sedangMemprosesScan = false; }, 2000);
+        }
+
+        // Render Table Body
+        function renderTable(items) {
+            const tbody = document.getElementById('inventoryTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const itemCount = document.getElementById('itemCount');
+            
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                itemCount.innerText = 'Menampilkan 0 barang';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            itemCount.innerText = `Menampilkan ${items.length} barang`;
+
+            items.forEach(item => {
+                const iconClass = categoryIcons[item.category] || categoryIcons['Lainnya'];
+                
+                // Condition Badge
+                let conditionBadge = '';
+                if (item.condition === 'Baik') {
+                    conditionBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Baik</span>`;
+                } else if (item.condition === 'Idle') {
+                    conditionBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>Idle</span>`;
+                } else if (item.condition === 'Rusak Ringan') {
+                    conditionBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Rusak Ringan</span>`;
+                } else {
+                    conditionBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rusak Berat</span>`;
+                }
+                
+                const nameLines = item.name.split('\n');
+                const firstLine = nameLines[0] || '';
+                const hasMoreLines = nameLines.length > 1;
+
+                let titleText = '';
+                let collapsedPreview = '';
+                
+                if (item.category === 'PC' && item.pcName) {
+                    titleText = item.pcName;
+                    collapsedPreview = firstLine;
+                } else {
+                    titleText = firstLine;
+                    collapsedPreview = hasMoreLines ? nameLines[1] : '';
+                }
+
+                // Cards click wrapper
+                const nameDisplayHtml = `
+                    <div class="flex flex-col gap-1 cursor-pointer group" onclick="openDetailModal('${item.id}')" title="Klik untuk membuka detail spesifikasi lengkap">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-semibold text-slate-800 group-hover:text-indigo-600 transition-all text-sm leading-snug">
+                                ${escapeHtml(titleText)}
+                            </span>
+                            <span class="inline-flex items-center gap-1 text-[9px] text-slate-400 bg-slate-100 group-hover:bg-indigo-50 group-hover:text-indigo-600 px-1.5 py-0.5 rounded font-sans font-medium transition-colors border border-transparent group-hover:border-indigo-100 shadow-sm">
+                                <i class="fa-solid fa-eye text-[8px]"></i> Lihat Detail
+                            </span>
+                        </div>
+                        ${collapsedPreview ? `<div class="text-xs text-slate-400 truncate max-w-xs font-mono">${escapeHtml(collapsedPreview)}...</div>` : ''}
+                    </div>
+                `;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors duration-150";
+                tr.innerHTML = `
+                    <td class="py-4 px-6">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 mt-1 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer ${iconClass.split(' ').slice(2).join(' ')}" onclick="openDetailModal('${item.id}')">
+                                <i class="${iconClass.split(' ').slice(0, 2).join(' ')} text-lg"></i>
+                            </div>
+                            <div class="max-w-md w-full">
+                                ${nameDisplayHtml}
+                                <div class="text-xs text-slate-400 font-medium mt-1">${item.category}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-slate-700 font-medium">${escapeHtml(item.room)}</td>
+                    <td class="py-4 px-6">${conditionBadge}</td>
+                    <td class="py-4 px-6 text-center font-semibold text-slate-700">${item.quantity}</td>
+                    <td class="py-4 px-6 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="duplicateItem('${item.id}')" title="Duplikasi Data" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                            <button onclick="editItem('${item.id}')" title="Ubah Data" class="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all">
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="confirmDelete('${item.id}')" title="Hapus Data" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Toggle PC Name/ID input field based on active Category
+        function togglePcNameField() {
+            const category = document.getElementById('itemCategory').value;
+            const pcNameWrapper = document.getElementById('pcNameWrapper');
+            const pcNameInput = document.getElementById('itemPcName');
+            
+            if (category === 'PC') {
+                pcNameWrapper.classList.remove('hidden');
+                pcNameInput.required = true;
+            } else {
+                pcNameWrapper.classList.add('hidden');
+                pcNameInput.required = false;
+                pcNameInput.value = '';
+            }
+        }
+
+        // Auto format and clean messy copy-pasted system information
+        function autoCleanSpecs() {
+            const textarea = document.getElementById('itemName');
+            let text = textarea.value;
+            if (!text.trim()) {
+                showToast("Silakan tempel (paste) spesifikasi dari sistem terlebih dahulu!", "danger");
+                return;
+            }
+
+            // Clean weird system whitespaces & non-breaking spaces
+            text = text.replace(/\u00a0/g, ' ');
+
+            let lines = text.split(/\r?\n/);
+            let pasangan = []; // [key, value] apa adanya, TIDAK ada baris yang dibuang
+            let deviceName = '';
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+
+                // Pisahkan "Nama Field" dan "Isi" — dukung Tab, ":" , atau 2+ spasi
+                let key = '', value = '';
+
+                if (line.includes('\t')) {
+                    let parts = line.split('\t').filter(p => p.trim() !== '');
+                    key = parts[0].trim();
+                    value = parts.slice(1).join(' ').trim();
+                } else if (/ {2,}/.test(line.trim())) {
+                    let parts = line.trim().split(/ {2,}/).filter(p => p.trim() !== '');
+                    key = parts[0].trim();
+                    value = parts.slice(1).join(' ').trim();
+                } else if (line.includes(':')) {
+                    let idx = line.indexOf(':');
+                    key = line.slice(0, idx).trim();
+                    value = line.slice(idx + 1).trim();
+                }
+
+                if (key && value) {
+                    // Nama field TETAP seperti aslinya (huruf besar/kecil tidak diubah)
+                    pasangan.push([key, value]);
+                    if (/device name|nama perangkat|nama komputer/i.test(key)) {
+                        deviceName = value;
+                    }
+                } else {
+                    // Baris yang tidak berbentuk "Field: Isi" tetap disimpan apa adanya
+                    pasangan.push([line.trim(), '']);
+                }
+            });
+
+            if (pasangan.filter(p => p[1]).length < 2) {
+                showToast("Format belum terdeteksi. Pastikan tiap baris berupa 'Nama Field [Tab] Isi'.", "danger");
+                return;
+            }
+
+            // Ratakan tanda titik dua berdasarkan nama field terpanjang
+            const panjangKunciMaksimal = Math.max(...pasangan.map(p => p[0].length));
+            const barisHasil = pasangan.map(p => {
+                if (!p[1]) return p[0]; // baris tanpa "isi" ditampilkan apa adanya, tanpa titik dua
+                return p[0].padEnd(panjangKunciMaksimal + 1) + ': ' + p[1];
+            });
+
+            textarea.value = barisHasil.join('\n');
+
+            // Kalau ketemu "Device name", otomatis set kategori PC & isi Nama PC
+            if (deviceName) {
+                document.getElementById('itemCategory').value = 'PC';
+                togglePcNameField();
+                document.getElementById('itemPcName').value = deviceName;
+            }
+
+            showToast("Spesifikasi berhasil dirapikan (titik dua rata)!", "success");
+        }
+
+        // Modal Controls
+        function openModal() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-plus text-indigo-500"></i> Tambah Perlengkapan';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemId').value = '';
+            togglePcNameField(); 
+            
+            const modal = document.getElementById('itemModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('itemModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Save Item (Create or Update)
+        async function saveItem(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('itemId').value;
+            const name = document.getElementById('itemName').value.trim();
+            const room = document.getElementById('itemRoom').value.trim();
+            const category = document.getElementById('itemCategory').value;
+            const quantity = parseInt(document.getElementById('itemQuantity').value);
+            const condition = document.getElementById('itemCondition').value;
+            const pcName = document.getElementById('itemPcName').value.trim();
+
+            if (!name || !room || !category || !quantity || !condition || (category === 'PC' && !pcName)) {
+                showToast("Mohon isi semua kolom bertanda bintang (*)", "danger");
+                return;
+            }
+
+            const payload = keSupabaseBarang({
+                name, room, category, quantity, condition,
+                pcName: category === 'PC' ? pcName : undefined
+            });
+
+            const btnSubmit = document.querySelector('#itemForm button[type="submit"]');
+            if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Menyimpan...'; }
+
+            try {
+                if (id) {
+                    // Update ke Supabase
+                    const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=eq.${id}`, {
+                        method: 'PATCH',
+                        headers: { ...headerDasar, "Prefer": "return=representation" },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!respon.ok) throw new Error('Gagal memperbarui data');
+                    const hasil = await respon.json();
+
+                    const index = inventoryItems.findIndex(item => item.id === id);
+                    if (index !== -1) inventoryItems[index] = dariSupabaseBarang(hasil[0]);
+                    showToast("Perlengkapan berhasil diperbarui!");
+                } else {
+                    // Buat baru di Supabase
+                    const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}`, {
+                        method: 'POST',
+                        headers: { ...headerDasar, "Prefer": "return=representation" },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!respon.ok) throw new Error('Gagal menambahkan data');
+                    const hasil = await respon.json();
+
+                    inventoryItems.push(dariSupabaseBarang(hasil[0]));
+                    showToast("Perlengkapan baru berhasil ditambahkan!");
+                }
+
+                closeModal();
+                updateStats();
+                updateCategoryChart();
+                updateConditionChart();
+                refreshDynamicDropdowns();
+                filterData();
+            } catch (kesalahan) {
+                showToast("Gagal menyimpan ke Supabase. Cek koneksi.", "danger");
+                console.error(kesalahan);
+            } finally {
+                if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = 'Simpan Data'; }
+            }
+        }
+
+        // Edit Item Setup
+        function editItem(id) {
+            const item = inventoryItems.find(item => item.id === id);
+            if (!item) return;
+
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-500"></i> Ubah Perlengkapan';
+            document.getElementById('itemId').value = item.id;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemRoom').value = item.room;
+            document.getElementById('itemCategory').value = item.category;
+            document.getElementById('itemQuantity').value = item.quantity;
+            document.getElementById('itemCondition').value = item.condition;
+            
+            document.getElementById('itemPcName').value = item.pcName || '';
+            togglePcNameField();
+
+            const modal = document.getElementById('itemModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        // Duplicate Item
+        async function duplicateItem(id) {
+            const item = inventoryItems.find(item => item.id === id);
+            if (!item) return;
+
+            const payload = keSupabaseBarang({
+                ...item,
+                name: `${item.name} (Salinan)`,
+                pcName: item.pcName ? `${item.pcName}-SALINAN` : undefined
+            });
+
+            try {
+                const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}`, {
+                    method: 'POST',
+                    headers: { ...headerDasar, "Prefer": "return=representation" },
+                    body: JSON.stringify(payload)
+                });
+                if (!respon.ok) throw new Error('Gagal menduplikasi data');
+                const hasil = await respon.json();
+
+                inventoryItems.push(dariSupabaseBarang(hasil[0]));
+                updateStats();
+                updateCategoryChart();
+                updateConditionChart();
+                refreshDynamicDropdowns();
+                filterData();
+                showToast("Perlengkapan berhasil diduplikasi!");
+            } catch (kesalahan) {
+                showToast("Gagal menduplikasi data ke Supabase.", "danger");
+                console.error(kesalahan);
+            }
+        }
+
+        // Category Management Functions
+        function openCategoryModal() {
+            renderCategoryList();
+            const modal = document.getElementById('categoryModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        // Close Category Modal
+        function closeCategoryModal() {
+            const modal = document.getElementById('categoryModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Render Category List
+        function renderCategoryList() {
+            const container = document.getElementById('categoryListContainer');
+            container.innerHTML = '';
+
+            categoriesList.forEach(cat => {
+                const isCore = coreCategories.includes(cat);
+                const isUsed = inventoryItems.some(item => item.category === cat);
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors';
+                
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        <span class="font-medium text-slate-700 text-sm">${escapeHtml(cat)}</span>
+                        ${isUsed ? '<span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-semibold uppercase">Digunakan</span>' : ''}
+                    </div>
+                    <div>
+                        ${isCore 
+                            ? '<span class="text-slate-300 text-xs" title="Kategori bawaan sistem tidak bisa dihapus"><i class="fa-solid fa-lock"></i></span>'
+                            : `<button onclick="deleteCategory('${escapeHtml(cat)}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all" title="Hapus Kategori">
+                                    <i class="fa-regular fa-trash-can text-sm"></i>
+                               </button>`
+                        }
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        // Add Category
+        async function addCategory() {
+            const input = document.getElementById('newCategoryInput');
+            const newCat = input.value.trim();
+
+            if (!newCat) {
+                showToast("Nama kategori tidak boleh kosong!", "danger");
+                return;
+            }
+
+            if (categoriesList.some(cat => cat.toLowerCase() === newCat.toLowerCase())) {
+                showToast("Kategori sudah terdaftar!", "danger");
+                return;
+            }
+
+            try {
+                const respon = await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}`, {
+                    method: 'POST',
+                    headers: { ...headerDasar, "Prefer": "return=representation" },
+                    body: JSON.stringify({ name: newCat })
+                });
+                if (!respon.ok) throw new Error('Gagal menambah kategori');
+
+                categoriesList.push(newCat);
+                input.value = '';
+
+                renderCategoryList();
+                refreshDynamicDropdowns();
+                updateCategoryChart();
+                showToast(`Kategori "${newCat}" berhasil ditambahkan!`, "success");
+            } catch (kesalahan) {
+                showToast("Gagal menambah kategori ke Supabase.", "danger");
+                console.error(kesalahan);
+            }
+        }
+
+        // Delete Category
+        async function deleteCategory(catName) {
+            const isUsed = inventoryItems.some(item => item.category === catName);
+            if (isUsed) {
+                showToast(`Gagal! Kategori "${catName}" masih digunakan oleh beberapa barang.`, "danger");
+                return;
+            }
+
+            try {
+                const respon = await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}?name=eq.${encodeURIComponent(catName)}`, {
+                    method: 'DELETE',
+                    headers: headerDasar
+                });
+                if (!respon.ok) throw new Error('Gagal menghapus kategori');
+
+                categoriesList = categoriesList.filter(cat => cat !== catName);
+
+                renderCategoryList();
+                refreshDynamicDropdowns();
+                updateCategoryChart();
+                showToast(`Kategori "${catName}" berhasil dihapus.`, "info");
+            } catch (kesalahan) {
+                showToast("Gagal menghapus kategori di Supabase.", "danger");
+                console.error(kesalahan);
+            }
+        }
+
+        // Custom Confirm Delete Dialog
+        let itemToDeleteId = null;
+
+        function confirmDelete(id) {
+            itemToDeleteId = id;
+            const dialog = document.getElementById('confirmDialog');
+            dialog.classList.remove('hidden');
+            setTimeout(() => {
+                dialog.classList.remove('opacity-0');
+                dialog.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeConfirmDialog() {
+            const dialog = document.getElementById('confirmDialog');
+            dialog.classList.add('opacity-0');
+            dialog.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                dialog.classList.add('hidden');
+                itemToDeleteId = null;
+            }, 300);
+        }
+
+        document.getElementById('cancelConfirmBtn').addEventListener('click', closeConfirmDialog);
+        document.getElementById('okConfirmBtn').addEventListener('click', async () => {
+            if (itemToDeleteId) {
+                try {
+                    const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=eq.${itemToDeleteId}`, {
+                        method: 'DELETE',
+                        headers: headerDasar
+                    });
+                    if (!respon.ok) throw new Error('Gagal menghapus');
+
+                    inventoryItems = inventoryItems.filter(item => item.id !== itemToDeleteId);
+                    updateStats();
+                    updateCategoryChart();
+                    updateConditionChart();
+                    refreshDynamicDropdowns();
+                    filterData();
+                    showToast("Perlengkapan berhasil dihapus dari daftar.", "info");
+                } catch (kesalahan) {
+                    showToast("Gagal menghapus data di Supabase.", "danger");
+                    console.error(kesalahan);
+                }
+            }
+            closeConfirmDialog();
+        });
+
+        // Export to JSON file
+        function exportJSON() {
+            const backupData = {
+                categories: categoriesList,
+                items: inventoryItems
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `inventaris_lab_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Backup JSON berhasil diunduh!", "success");
+        }
+
+        // Import from JSON file -> restore ke Supabase (mengganti seluruh data yang ada)
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let items, kategoriBaru;
+                    if (Array.isArray(parsed)) {
+                        items = parsed;
+                        kategoriBaru = [...coreCategories];
+                    } else if (parsed && Array.isArray(parsed.items)) {
+                        items = parsed.items;
+                        kategoriBaru = parsed.categories || [...coreCategories];
+                    } else {
+                        showToast("File JSON tidak kompatibel.", "danger");
+                        return;
+                    }
+
+                    showToast("Mengimpor data ke Supabase...", "info");
+
+                    // Hapus seluruh data lama di Supabase (barang & kategori)
+                    await fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=not.is.null`, { method: 'DELETE', headers: headerDasar });
+                    await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}?id=not.is.null`, { method: 'DELETE', headers: headerDasar });
+
+                    // Masukkan kategori baru
+                    const resKategori = await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}`, {
+                        method: 'POST',
+                        headers: headerDasar,
+                        body: JSON.stringify(kategoriBaru.map(nama => ({ name: nama })))
+                    });
+                    if (!resKategori.ok) throw new Error('Gagal memulihkan kategori');
+
+                    // Masukkan barang baru
+                    if (items.length > 0) {
+                        const resBarang = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}`, {
+                            method: 'POST',
+                            headers: headerDasar,
+                            body: JSON.stringify(items.map(keSupabaseBarang))
+                        });
+                        if (!resBarang.ok) throw new Error('Gagal memulihkan barang');
+                    }
+
+                    await muatSemuaData();
+                    showToast("Data berhasil dipulihkan dari cadangan ke Supabase!", "success");
+                } catch (err) {
+                    showToast("Gagal membaca/memulihkan file backup.", "danger");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+
+        // ===== Mendengarkan siaran langsung (Realtime) dari Supabase =====
+        // Supaya perubahan data dari perangkat/pengguna lain langsung
+        // muncul tanpa perlu refresh halaman.
+        supabaseClient
+            .channel('realtime-inventaris')
+            .on('postgres_changes', { event: '*', schema: 'public', table: TABEL_BARANG }, (kabar) => {
+                if (kabar.eventType === 'INSERT') {
+                    if (!inventoryItems.some(it => it.id === kabar.new.id)) {
+                        inventoryItems.push(dariSupabaseBarang(kabar.new));
+                    }
+                } else if (kabar.eventType === 'UPDATE') {
+                    const idx = inventoryItems.findIndex(it => it.id === kabar.new.id);
+                    if (idx !== -1) inventoryItems[idx] = dariSupabaseBarang(kabar.new);
+                } else if (kabar.eventType === 'DELETE') {
+                    inventoryItems = inventoryItems.filter(it => it.id !== kabar.old.id);
+                }
+                updateStats();
+                updateCategoryChart();
+                updateConditionChart();
+                refreshDynamicDropdowns();
+                filterData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: TABEL_KATEGORI }, (kabar) => {
+                if (kabar.eventType === 'INSERT') {
+                    if (!categoriesList.includes(kabar.new.name)) categoriesList.push(kabar.new.name);
+                } else if (kabar.eventType === 'DELETE') {
+                    categoriesList = categoriesList.filter(c => c !== kabar.old.name);
+                }
+                refreshDynamicDropdowns();
+                updateCategoryChart();
+                const modalKategori = document.getElementById('categoryModal');
+                if (modalKategori && !modalKategori.classList.contains('hidden')) renderCategoryList();
+            })
+            .subscribe();
+
+        // Window Load Initialization
+        window.onload = function() {
+            muatSemuaData();
+        };
+    </script>
+</body>
+</html>
