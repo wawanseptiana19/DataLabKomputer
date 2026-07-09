@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notepad - Tersimpan Online</title>
 
+<!-- Library resmi Supabase, dibutuhkan supaya kita bisa "berlangganan siaran
+     langsung" (realtime) perubahan data, bukan cuma tanya sekali lalu selesai -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
   /* ===== CSS: tampilan seperti aplikasi Notepad sungguhan =====
      Ada 2 kolom: kiri = daftar catatan, kanan = area menulis */
@@ -48,7 +52,28 @@
     color: white;
     font-size: 15px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
+
+  /* Titik kecil berkedip = penanda sambungan realtime masih hidup */
+  .indikator-live{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a0e0c8;
+  }
+  .indikator-live .titik{
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #48bb78;
+  }
+  .indikator-live.putus{ color: #f6a8a8; }
+  .indikator-live.putus .titik{ background: var(--merah); }
 
   .btn-baru{
     margin: 12px;
@@ -259,7 +284,10 @@
 
   <!-- KOLOM KIRI: daftar semua catatan -->
   <div class="panel-daftar">
-    <div class="judul-panel">Catatan Saya</div>
+    <div class="judul-panel">
+      <span>Catatan Saya</span>
+      <span class="indikator-live" id="indikator-live"><span class="titik"></span> Live</span>
+    </div>
     <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
     <div class="filter-label" id="filter-label">
       <!-- Diisi otomatis: satu chip per label yang ada, plus "Semua" -->
@@ -321,6 +349,14 @@
     "Authorization": "Bearer " + SUPABASE_KEY,
     "Content-Type": "application/json"
   };
+
+  // Klien khusus untuk REALTIME: ini yang membuka "kabel telepon terbuka"
+  // ke Supabase, supaya kita diberi tahu setiap kali ada perubahan data,
+  // tanpa perlu terus-menerus bertanya (polling).
+  const supabaseClient = window.supabase.createClient(
+    "https://qzdvdfebkzlwkhvxwsju.supabase.co",
+    SUPABASE_KEY
+  );
 
   // "Rak sementara" di memori browser, isinya salinan data dari gudang
   let daftarCatatan = [];
@@ -541,6 +577,65 @@
       console.error(kesalahan);
     }
   });
+
+  // ===== 6. MENDENGARKAN SIARAN LANGSUNG (REALTIME) =====
+  // Setiap kali ada baris ditambah/diubah/dihapus di tabel "catatan"
+  // (oleh kita sendiri ATAU orang lain yang buka aplikasi ini),
+  // Supabase akan mengirim "kabar" ke sini secara otomatis.
+  const elIndikatorLive = document.getElementById('indikator-live');
+
+  supabaseClient
+    .channel('siaran-catatan')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABEL }, function (kabar) {
+      if (kabar.eventType === 'INSERT') {
+        // Kalau catatan ini belum ada di rak kita (misalnya dibuat oleh
+        // komputer lain), tambahkan. Kalau sudah ada (kita sendiri yang
+        // baru membuatnya), tidak usah digandakan.
+        const sudahAda = daftarCatatan.some(c => c.id === kabar.new.id);
+        if (!sudahAda) {
+          daftarCatatan.unshift(kabar.new);
+          gambarDaftar();
+        }
+      }
+
+      if (kabar.eventType === 'UPDATE') {
+        const idx = daftarCatatan.findIndex(c => c.id === kabar.new.id);
+        if (idx !== -1) daftarCatatan[idx] = kabar.new;
+
+        // Kalau catatan yang sedang kita buka diubah oleh ORANG LAIN
+        // (bukan kita yang sedang mengetik), perbarui juga tampilan
+        // editornya, supaya kita tidak melihat versi lama.
+        const sedangMengetik = document.activeElement === elInputJudul ||
+                                document.activeElement === elInputLabel ||
+                                document.activeElement === elInputStatus ||
+                                document.activeElement === elInputIsi;
+        if (kabar.new.id === idAktif && !sedangMengetik) {
+          elInputJudul.value = kabar.new.judul || '';
+          elInputLabel.value = kabar.new.label || '';
+          elInputStatus.value = kabar.new.status || 'hidup';
+          elInputIsi.value = kabar.new.isi || '';
+        }
+        gambarDaftar();
+      }
+
+      if (kabar.eventType === 'DELETE') {
+        daftarCatatan = daftarCatatan.filter(c => c.id !== kabar.old.id);
+        if (kabar.old.id === idAktif) {
+          idAktif = null;
+          elPanelTulis.style.display = 'none';
+          elLayarKosong.style.display = 'flex';
+        }
+        gambarDaftar();
+      }
+    })
+    .subscribe(function (status) {
+      // Menampilkan status sambungan: hijau kalau tersambung, merah kalau putus
+      if (status === 'SUBSCRIBED') {
+        elIndikatorLive.classList.remove('putus');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        elIndikatorLive.classList.add('putus');
+      }
+    });
 
   // Mulai: ambil semua catatan begitu halaman dibuka
   muatSemuaCatatan();
