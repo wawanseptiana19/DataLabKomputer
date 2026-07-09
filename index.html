@@ -93,6 +93,45 @@
     margin-top: 2px;
   }
 
+  /* Badge label, seperti stiker kecil berwarna di pojok catatan */
+  .badge-label{
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 4px;
+    background: #dbe7f3;
+    color: var(--biru-tua);
+  }
+  .item-catatan.aktif .badge-label{
+    background: rgba(255,255,255,0.25);
+    color: white;
+  }
+
+  /* Baris filter label di atas daftar catatan */
+  .filter-label{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 12px 10px 12px;
+  }
+  .chip-filter{
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--abu-garis);
+    background: white;
+    color: #4a5568;
+    cursor: pointer;
+  }
+  .chip-filter.aktif{
+    background: var(--biru-terang);
+    color: white;
+    border-color: var(--biru-terang);
+  }
+
   .info-daftar-kosong{
     text-align: center;
     color: #718096;
@@ -146,6 +185,27 @@
   #input-judul:focus{ outline: none; }
   #input-judul::placeholder{ color: #a0aec0; }
 
+  /* Baris label di editor, di bawah judul */
+  .baris-label{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px 8px 24px;
+  }
+  .baris-label label{
+    font-size: 12.5px;
+    color: #718096;
+    font-weight: 600;
+  }
+  #input-label{
+    font-size: 13px;
+    padding: 5px 10px;
+    border: 1px solid var(--abu-garis);
+    border-radius: 20px;
+    max-width: 200px;
+  }
+  #input-label:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
+
   #input-isi{
     flex: 1;
     border: none;
@@ -177,6 +237,9 @@
   <div class="panel-daftar">
     <div class="judul-panel">Catatan Saya</div>
     <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
+    <div class="filter-label" id="filter-label">
+      <!-- Diisi otomatis: satu chip per label yang ada, plus "Semua" -->
+    </div>
     <div class="daftar-catatan" id="daftar-catatan">
       <!-- Diisi otomatis oleh JavaScript -->
     </div>
@@ -192,6 +255,13 @@
       </div>
     </div>
     <input type="text" id="input-judul" placeholder="Judul catatan...">
+    <div class="baris-label">
+      <label for="input-label">Label:</label>
+      <input type="text" id="input-label" placeholder="Contoh: Tugas, Ide, Penting" list="daftar-label-saran">
+      <datalist id="daftar-label-saran">
+        <!-- Diisi otomatis dari label-label yang sudah pernah dipakai -->
+      </datalist>
+    </div>
     <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
   </div>
 
@@ -226,12 +296,16 @@
   let daftarCatatan = [];
   let idAktif = null;       // catatan mana yang sedang dibuka
   let waktuTimer = null;    // dipakai untuk auto-save setelah berhenti mengetik
+  let labelAktif = null;    // label mana yang sedang dipakai untuk menyaring (null = semua)
 
   // Ambil elemen-elemen HTML yang akan kita atur
   const elDaftar = document.getElementById('daftar-catatan');
+  const elFilterLabel = document.getElementById('filter-label');
   const elPanelTulis = document.getElementById('panel-tulis');
   const elLayarKosong = document.getElementById('layar-kosong');
   const elInputJudul = document.getElementById('input-judul');
+  const elInputLabel = document.getElementById('input-label');
+  const elDaftarLabelSaran = document.getElementById('daftar-label-saran');
   const elInputIsi = document.getElementById('input-isi');
   const elStatus = document.getElementById('status-simpan');
 
@@ -252,24 +326,74 @@
     }
   }
 
-  // Menggambar ulang daftar catatan di kolom kiri
+  // Menggambar ulang daftar catatan di kolom kiri (menghormati filter label yang aktif)
   function gambarDaftar() {
-    if (daftarCatatan.length === 0) {
+    gambarChipFilter();
+    gambarSaranLabel();
+
+    // Saring dulu berdasarkan label yang sedang dipilih (kalau ada)
+    const dataTampil = labelAktif === null
+      ? daftarCatatan
+      : daftarCatatan.filter(c => (c.label || '').trim() === labelAktif);
+
+    if (dataTampil.length === 0) {
       elDaftar.innerHTML = '<p class="info-daftar-kosong">Belum ada catatan.</p>';
       return;
     }
 
     elDaftar.innerHTML = '';
-    daftarCatatan.forEach(function (c) {
+    dataTampil.forEach(function (c) {
       const item = document.createElement('div');
       item.className = 'item-catatan' + (c.id === idAktif ? ' aktif' : '');
+      const labelHTML = c.label
+        ? `<div class="badge-label">${escapeHTML(c.label)}</div>`
+        : '';
       item.innerHTML = `
         <div class="judul-item">${escapeHTML(c.judul || 'Tanpa judul')}</div>
         <div class="cuplikan">${escapeHTML((c.isi || '').slice(0, 40) || 'Kosong')}</div>
+        ${labelHTML}
       `;
       item.addEventListener('click', function () { bukaCatatan(c.id); });
       elDaftar.appendChild(item);
     });
+  }
+
+  // Mengumpulkan semua label unik yang sedang dipakai, lalu menggambar
+  // "chip" filter di atas daftar (seperti tab pemilah warna stiker)
+  function gambarChipFilter() {
+    const labelUnik = [...new Set(
+      daftarCatatan.map(c => (c.label || '').trim()).filter(l => l !== '')
+    )];
+
+    if (labelUnik.length === 0) {
+      elFilterLabel.innerHTML = '';
+      return;
+    }
+
+    let html = `<span class="chip-filter${labelAktif === null ? ' aktif' : ''}" data-label="">Semua</span>`;
+    labelUnik.forEach(function (l) {
+      html += `<span class="chip-filter${labelAktif === l ? ' aktif' : ''}" data-label="${escapeHTML(l)}">${escapeHTML(l)}</span>`;
+    });
+    elFilterLabel.innerHTML = html;
+
+    // Pasang "penjaga pintu" klik untuk tiap chip
+    elFilterLabel.querySelectorAll('.chip-filter').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        const nilai = chip.getAttribute('data-label');
+        labelAktif = nilai === '' ? null : nilai;
+        gambarDaftar();
+      });
+    });
+  }
+
+  // Mengisi daftar saran (autocomplete) di input label, dari label yang sudah pernah dipakai
+  function gambarSaranLabel() {
+    const labelUnik = [...new Set(
+      daftarCatatan.map(c => (c.label || '').trim()).filter(l => l !== '')
+    )];
+    elDaftarLabelSaran.innerHTML = labelUnik
+      .map(l => `<option value="${escapeHTML(l)}"></option>`)
+      .join('');
   }
 
   function escapeHTML(teks) {
@@ -284,7 +408,7 @@
       const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
         method: 'POST',
         headers: { ...headerDasar, "Prefer": "return=representation" },
-        body: JSON.stringify({ judul: '', isi: '' })
+        body: JSON.stringify({ judul: '', isi: '', label: '' })
       });
       if (!respon.ok) throw new Error('Gagal membuat catatan');
       const catatanBaru = await respon.json();
@@ -304,6 +428,7 @@
     if (!catatan) return;
 
     elInputJudul.value = catatan.judul || '';
+    elInputLabel.value = catatan.label || '';
     elInputIsi.value = catatan.isi || '';
     elPanelTulis.style.display = 'flex';
     elLayarKosong.style.display = 'none';
@@ -319,6 +444,7 @@
     const dataBaru = {
       judul: elInputJudul.value,
       isi: elInputIsi.value,
+      label: elInputLabel.value.trim(),
       diubah_pada: new Date().toISOString()
     };
 
@@ -353,6 +479,7 @@
     waktuTimer = setTimeout(simpanCatatan, 1000);
   }
   elInputJudul.addEventListener('input', jadwalkanAutoSave);
+  elInputLabel.addEventListener('input', jadwalkanAutoSave);
   elInputIsi.addEventListener('input', jadwalkanAutoSave);
 
   // ===== 5. MENGHAPUS CATATAN (membuang kartu dari gudang) =====
