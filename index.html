@@ -255,47 +255,6 @@
   }
   #input-status:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
 
-  #input-ip{
-    font-size: 13px;
-    padding: 5px 10px;
-    border: 1px solid var(--abu-garis);
-    border-radius: 20px;
-    max-width: 150px;
-    font-family: "Consolas", monospace;
-  }
-  #input-ip:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
-
-  #input-lan{
-    font-size: 13px;
-    padding: 5px 10px;
-    border: 1px solid var(--abu-garis);
-    border-radius: 20px;
-    background: white;
-  }
-  #input-lan:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
-
-  .badge-lan{
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-top: 4px;
-    margin-left: 4px;
-    color: white;
-  }
-  .badge-lan.terhubung{ background: #0e7c86; }
-  .badge-lan.tidak{ background: var(--merah); }
-
-  .badge-ip{
-    display: inline-block;
-    font-size: 11px;
-    font-family: "Consolas", monospace;
-    color: #718096;
-    margin-top: 4px;
-    margin-left: 4px;
-  }
-
   #input-isi{
     flex: 1;
     border: none;
@@ -360,13 +319,6 @@
         <option value="mati">Mati</option>
         <option value="perbaikan">Perbaikan</option>
       </select>
-      <label for="input-ip">IP:</label>
-      <input type="text" id="input-ip" placeholder="192.168.1.10">
-      <label for="input-lan">LAN:</label>
-      <select id="input-lan">
-        <option value="terhubung">Terhubung</option>
-        <option value="tidak">Tidak terhubung</option>
-      </select>
     </div>
     <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
   </div>
@@ -421,8 +373,6 @@
   const elInputLabel = document.getElementById('input-label');
   const elDaftarLabelSaran = document.getElementById('daftar-label-saran');
   const elInputStatus = document.getElementById('input-status');
-  const elInputIp = document.getElementById('input-ip');
-  const elInputLan = document.getElementById('input-lan');
   const elInputIsi = document.getElementById('input-isi');
   const elStatus = document.getElementById('status-simpan');
 
@@ -467,13 +417,10 @@
         : '';
       const teksStatus = { hidup: 'Hidup', mati: 'Mati', perbaikan: 'Perbaikan' }[c.status] || 'Hidup';
       const statusHTML = `<div class="badge-status ${c.status || 'hidup'}">${teksStatus}</div>`;
-      const ipHTML = c.ip ? `<span class="badge-ip">${escapeHTML(c.ip)}</span>` : '';
-      const teksLan = { terhubung: 'Terhubung', tidak: 'Tidak terhubung' }[c.lan] || 'Terhubung';
-      const lanHTML = `<div class="badge-lan ${c.lan || 'terhubung'}">${teksLan}</div>`;
       item.innerHTML = `
         <div class="judul-item">${escapeHTML(c.judul || 'Tanpa judul')}</div>
         <div class="cuplikan">${escapeHTML((c.isi || '').slice(0, 40) || 'Kosong')}</div>
-        ${labelHTML}${statusHTML}${lanHTML}${ipHTML}
+        ${labelHTML}${statusHTML}
       `;
       item.addEventListener('click', function () { bukaCatatan(c.id); });
       elDaftar.appendChild(item);
@@ -530,7 +477,7 @@
       const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
         method: 'POST',
         headers: { ...headerDasar, "Prefer": "return=representation" },
-        body: JSON.stringify({ judul: '', isi: '', label: '', status: 'hidup', ip: '', lan: 'terhubung' })
+        body: JSON.stringify({ judul: '', isi: '', label: '', status: 'hidup' })
       });
       if (!respon.ok) throw new Error('Gagal membuat catatan');
       const catatanBaru = await respon.json();
@@ -552,8 +499,6 @@
     elInputJudul.value = catatan.judul || '';
     elInputLabel.value = catatan.label || '';
     elInputStatus.value = catatan.status || 'hidup';
-    elInputIp.value = catatan.ip || '';
-    elInputLan.value = catatan.lan || 'terhubung';
     elInputIsi.value = catatan.isi || '';
     elPanelTulis.style.display = 'flex';
     elLayarKosong.style.display = 'none';
@@ -571,8 +516,6 @@
       isi: elInputIsi.value,
       label: elInputLabel.value.trim(),
       status: elInputStatus.value,
-      ip: elInputIp.value.trim(),
-      lan: elInputLan.value,
       diubah_pada: new Date().toISOString()
     };
 
@@ -609,8 +552,6 @@
   elInputJudul.addEventListener('input', jadwalkanAutoSave);
   elInputLabel.addEventListener('input', jadwalkanAutoSave);
   elInputStatus.addEventListener('change', jadwalkanAutoSave);
-  elInputIp.addEventListener('input', jadwalkanAutoSave);
-  elInputLan.addEventListener('change', jadwalkanAutoSave);
   elInputIsi.addEventListener('input', jadwalkanAutoSave);
 
   // ===== 5. MENGHAPUS CATATAN (membuang kartu dari gudang) =====
@@ -672,8 +613,6 @@
           elInputJudul.value = kabar.new.judul || '';
           elInputLabel.value = kabar.new.label || '';
           elInputStatus.value = kabar.new.status || 'hidup';
-          elInputIp.value = kabar.new.ip || '';
-          elInputLan.value = kabar.new.lan || 'terhubung';
           elInputIsi.value = kabar.new.isi || '';
         }
         gambarDaftar();
