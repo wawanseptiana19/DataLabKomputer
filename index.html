@@ -283,9 +283,13 @@
     border: none;
     resize: none;
     padding: 8px 24px 24px 24px;
-    font-size: 15px;
+    font-size: 14.5px;
     line-height: 1.7;
-    font-family: "Segoe UI", Arial, sans-serif;
+    /* Monospace supaya hasil "Rapikan Spek PC" (yang pakai spasi buat
+       meratakan kolom) benar-benar rata secara visual. Kalau pakai font
+       biasa (Segoe UI dkk), tiap huruf lebarnya beda-beda, jadi rapinya
+       cuma di kode, bukan di layar. */
+    font-family: "Consolas", "Courier New", monospace;
   }
   #input-isi:focus{ outline: none; }
 
@@ -330,6 +334,7 @@
     <div class="bilah-atas">
       <span class="status-simpan" id="status-simpan">Belum ada perubahan</span>
       <div>
+        <button class="tombol tombol-sisip" id="btn-rapikan-spek">🖥 Rapikan Spek PC</button>
         <button class="tombol tombol-sisip" id="btn-sisip-txt">⬆ Sisipkan .txt di sini</button>
         <button class="tombol tombol-hapus" id="btn-hapus">Hapus</button>
         <button class="tombol tombol-utama" id="btn-simpan">Simpan</button>
@@ -412,6 +417,7 @@
   const elBtnUploadTxt = document.getElementById('btn-upload-txt');
   const elInputFileTxt = document.getElementById('input-file-txt');
   const elBtnSisipTxt = document.getElementById('btn-sisip-txt');
+  const elBtnRapikanSpek = document.getElementById('btn-rapikan-spek');
 
   // ===== 1. MENGAMBIL DATA DARI SUPABASE (seperti membuka gudang & lihat isinya) =====
   async function muatSemuaCatatan() {
@@ -508,6 +514,107 @@
     return div.innerHTML;
   }
 
+  // ===== FITUR "RAPIKAN SPEK PC" =====
+  // Latar belakang: kalau kita copy dari Settings > System > About di Windows,
+  // hasilnya berupa baris-baris "Nama Field [TAB] Isinya", tapi begitu
+  // ditempel (paste) ke tempat lain, tab-nya sering berantakan/gak rata.
+  // Fungsi ini "membaca" pola itu, lalu menyusun ulang jadi rapi & sejajar.
+  //
+  // Analoginya: ini kayak petugas gudang yang nerima kardus-kardus acak
+  // (baris teks mentah), ngecek satu-satu apakah isinya "label: isi"
+  // (dipisah tab), terus nyusun ulang ke rak dengan label yang sama
+  // panjangnya, biar kelihatan rapi kayak tabel.
+  function rapikanSpekPC(teksMentah) {
+    const baris = teksMentah.split(/\r?\n/).filter(function (b) { return b.trim() !== ''; });
+    const pasangan = [];
+
+    baris.forEach(function (b) {
+      // Pisahkan berdasarkan satu tab atau lebih (kadang ada tab ganda)
+      const bagian = b.split(/\t+/);
+      if (bagian.length >= 2) {
+        const kunci = bagian[0].trim();
+        const nilai = bagian.slice(1).join(' ').trim();
+        if (kunci && nilai) pasangan.push([kunci, nilai]);
+      }
+    });
+
+    // Kalau kurang dari 3 baris yang cocok format "kunci [tab] nilai",
+    // kita anggap ini BUKAN tabel spek PC, jadi jangan diutak-atik.
+    // Ini penting supaya paste teks biasa (misal draft tulisan) tidak
+    // ikut "dirapikan" secara tidak diinginkan.
+    if (pasangan.length < 3) return null;
+
+    const panjangKunciMaksimal = Math.max.apply(null, pasangan.map(function (p) { return p[0].length; }));
+
+    const barisHasil = pasangan.map(function (p) {
+      return p[0].padEnd(panjangKunciMaksimal + 1) + ': ' + p[1];
+    });
+
+    const entriDeviceName = pasangan.find(function (p) { return /device name/i.test(p[0]); });
+
+    return {
+      teks: barisHasil.join('\n'),
+      deviceName: entriDeviceName ? entriDeviceName[1] : null
+    };
+  }
+
+  // Menyisipkan teks baru persis di posisi kursor (atau menimpa teks
+  // yang sedang di-blok), lalu kursor dipindah ke akhir teks yang disisipkan
+  function sisipkanTeksDiKursor(textarea, teksBaru) {
+    const mulai = textarea.selectionStart;
+    const akhir = textarea.selectionEnd;
+    const nilaiLama = textarea.value;
+    textarea.value = nilaiLama.slice(0, mulai) + teksBaru + nilaiLama.slice(akhir);
+    const posisiBaru = mulai + teksBaru.length;
+    textarea.selectionStart = textarea.selectionEnd = posisiBaru;
+  }
+
+  // Terapkan hasil rapikan ke editor: isi teks, dan kalau judul/label
+  // masih kosong, isi otomatis biar makin males-ngetik-friendly :)
+  function terapkanHasilRapikan(hasil) {
+    if (!hasil) return false;
+    elInputIsi.value = hasil.teks;
+    if (!elInputLabel.value.trim()) {
+      elInputLabel.value = 'Spek PC';
+    }
+    if (!elInputJudul.value.trim() && hasil.deviceName) {
+      elInputJudul.value = 'Spek PC - ' + hasil.deviceName;
+    }
+    jadwalkanAutoSave();
+    return true;
+  }
+
+  // Deteksi OTOMATIS saat paste: begitu kamu tempel hasil copy dari
+  // halaman About Windows, langsung dirapikan tanpa perlu klik tombol
+  elInputIsi.addEventListener('paste', function (peristiwa) {
+    const papanKlip = peristiwa.clipboardData || window.clipboardData;
+    if (!papanKlip) return;
+    const teksAsli = papanKlip.getData('text');
+    if (!teksAsli) return;
+
+    const hasil = rapikanSpekPC(teksAsli);
+    if (!hasil) return; // bukan format spek PC, biarkan paste berjalan normal
+
+    peristiwa.preventDefault();
+    sisipkanTeksDiKursor(elInputIsi, hasil.teks);
+    if (!elInputLabel.value.trim()) elInputLabel.value = 'Spek PC';
+    if (!elInputJudul.value.trim() && hasil.deviceName) {
+      elInputJudul.value = 'Spek PC - ' + hasil.deviceName;
+    }
+    jadwalkanAutoSave();
+  });
+
+  // Tombol manual "🖥 Rapikan Spek PC": buat jaga-jaga kalau kamu sudah
+  // terlanjur paste dengan cara biasa (jadi berantakan), tinggal klik ini
+  // dan seluruh isi catatan akan dicoba dirapikan ulang.
+  elBtnRapikanSpek.addEventListener('click', function () {
+    if (idAktif === null) return;
+    const berhasil = terapkanHasilRapikan(rapikanSpekPC(elInputIsi.value));
+    if (!berhasil) {
+      alert('Isi catatan ini belum kelihatan seperti format spek PC (butuh minimal 3 baris "Nama Field [TAB] Isi").');
+    }
+  });
+
   // Fungsi bantuan: buat satu catatan baru di Supabase dengan data awal
   // yang bisa kita atur (dipakai baik oleh "+ Catatan baru" polos
   // maupun oleh fitur upload .txt)
@@ -582,22 +689,32 @@
     const pembaca = new FileReader();
 
     pembaca.onload = async function () {
-      const isiFile = pembaca.result; // ini isi teks lengkap dari file .txt
+      const isiFileMentah = pembaca.result; // ini isi teks lengkap dari file .txt
       const judulDariNamaFile = file.name.replace(/\.txt$/i, '');
+
+      // Kalau ternyata file .txt-nya juga berformat "spek PC" (key TAB value),
+      // langsung dirapikan juga di sini, biar hasil upload gak perlu dirapikan manual lagi
+      const hasilRapi = rapikanSpekPC(isiFileMentah);
+      const isiFile = hasilRapi ? hasilRapi.teks : isiFileMentah;
 
       try {
         if (mode === 'sisip' && idAktif !== null) {
           // Timpa isi catatan yang sedang dibuka, biarkan judul/label/status apa adanya
           elInputIsi.value = isiFile;
+          if (hasilRapi && !elInputLabel.value.trim()) elInputLabel.value = 'Spek PC';
           await simpanCatatan();
           elStatus.textContent = 'Tersimpan (isi dari ' + file.name + ')';
         } else {
-          // Buat catatan baru, judul = nama file, isi = isi file
+          // Buat catatan baru, judul = nama file (atau nama device kalau kedeteksi spek PC)
           elBtnUploadTxt.disabled = true;
           elBtnUploadTxt.textContent = 'Mengunggah...';
+          const judulFinal = (hasilRapi && hasilRapi.deviceName)
+            ? 'Spek PC - ' + hasilRapi.deviceName
+            : judulDariNamaFile;
           const catatanBaru = await buatCatatanBaru({
-            judul: judulDariNamaFile,
-            isi: isiFile
+            judul: judulFinal,
+            isi: isiFile,
+            label: hasilRapi ? 'Spek PC' : ''
           });
           daftarCatatan.unshift(catatanBaru);
           gambarDaftar();
