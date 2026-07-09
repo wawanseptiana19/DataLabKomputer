@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notepad - Tersimpan Online</title>
+
+<style>
+  /* ===== CSS: tampilan seperti aplikasi Notepad sungguhan =====
+     Ada 2 kolom: kiri = daftar catatan, kanan = area menulis */
+
+  :root{
+    --biru-tua: #1e3a5f;
+    --biru-terang: #2b6cb0;
+    --abu-terang: #f4f6f8;
+    --abu-garis: #d9dfe4;
+    --putih: #ffffff;
+    --merah: #c53030;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body{
+    height: 100%;
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1a202c;
+  }
+
+  .app{
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ===== KOLOM KIRI: daftar catatan, seperti daftar file di Notepad ===== */
+  .panel-daftar{
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--abu-terang);
+    border-right: 1px solid var(--abu-garis);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-daftar .judul-panel{
+    padding: 16px;
+    background: var(--biru-tua);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .btn-baru{
+    margin: 12px;
+    padding: 9px;
+    background: var(--biru-terang);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-baru:hover{ background: var(--biru-tua); }
+
+  .daftar-catatan{
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+
+  .item-catatan{
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    font-size: 13.5px;
+  }
+  .item-catatan:hover{ background: #e6eaee; }
+  .item-catatan.aktif{ background: var(--biru-terang); color: white; }
+  .item-catatan .judul-item{
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-catatan .cuplikan{
+    font-size: 12px;
+    opacity: 0.75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .info-daftar-kosong{
+    text-align: center;
+    color: #718096;
+    font-size: 13px;
+    padding: 20px 12px;
+  }
+
+  /* ===== KOLOM KANAN: area menulis, seperti lembar Notepad ===== */
+  .panel-tulis{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--putih);
+  }
+
+  .bilah-atas{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--abu-garis);
+  }
+
+  .status-simpan{
+    font-size: 12.5px;
+    color: #718096;
+  }
+
+  .tombol{
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .tombol-utama{ background: var(--biru-terang); color: white; }
+  .tombol-utama:hover{ background: var(--biru-tua); }
+  .tombol-hapus{ background: var(--merah); color: white; }
+  .tombol-hapus:hover{ background: #9b2c2c; }
+  .tombol:disabled{ opacity: 0.5; cursor: not-allowed; }
+
+  #input-judul{
+    border: none;
+    font-size: 22px;
+    font-weight: 700;
+    padding: 20px 24px 8px 24px;
+    color: var(--biru-tua);
+  }
+  #input-judul:focus{ outline: none; }
+  #input-judul::placeholder{ color: #a0aec0; }
+
+  #input-isi{
+    flex: 1;
+    border: none;
+    resize: none;
+    padding: 8px 24px 24px 24px;
+    font-size: 15px;
+    line-height: 1.7;
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+  #input-isi:focus{ outline: none; }
+
+  .layar-kosong{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a0aec0;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- KOLOM KIRI: daftar semua catatan -->
+  <div class="panel-daftar">
+    <div class="judul-panel">Catatan Saya</div>
+    <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
+    <div class="daftar-catatan" id="daftar-catatan">
+      <!-- Diisi otomatis oleh JavaScript -->
+    </div>
+  </div>
+
+  <!-- KOLOM KANAN: area menulis -->
+  <div class="panel-tulis" id="panel-tulis" style="display:none;">
+    <div class="bilah-atas">
+      <span class="status-simpan" id="status-simpan">Belum ada perubahan</span>
+      <div>
+        <button class="tombol tombol-hapus" id="btn-hapus">Hapus</button>
+        <button class="tombol tombol-utama" id="btn-simpan">Simpan</button>
+      </div>
+    </div>
+    <input type="text" id="input-judul" placeholder="Judul catatan...">
+    <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
+  </div>
+
+  <!-- Tampil kalau belum ada catatan yang dipilih -->
+  <div class="layar-kosong" id="layar-kosong">
+    Pilih catatan di sebelah kiri, atau klik "+ Catatan baru" untuk mulai menulis.
+  </div>
+
+</div>
+
+<script>
+  /* ===== JAVASCRIPT =====
+     Analogi: Supabase adalah GUDANG PENYIMPANAN ONLINE.
+     Setiap kali kita "Simpan", kita mengirim paket data ke gudang itu
+     lewat internet (pakai fungsi fetch). Setiap kali membuka aplikasi,
+     kita "meminta" gudang mengirimkan kembali semua catatan yang ada. */
+
+  // Alamat gudang (project Supabase) dan kunci masuknya
+  const SUPABASE_URL = "https://qzdvdfebkzlwkhvxwsju.supabase.co/rest/v1";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZHZkZmVia3psd2todnh3c2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcyMTA4OTksImV4cCI6MjA1Mjc4Njg5OX0.Z9XKmX49vu0kZwn6YMom8QeLNNdKQMXCIkxcIoHKQFs";
+  const TABEL = "catatan"; // nama tabel yang kita buat lewat SQL Editor
+
+  // Header ini seperti "kartu identitas" yang wajib disertakan
+  // setiap kali kita mengirim permintaan ke gudang Supabase
+  const headerDasar = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  // "Rak sementara" di memori browser, isinya salinan data dari gudang
+  let daftarCatatan = [];
+  let idAktif = null;       // catatan mana yang sedang dibuka
+  let waktuTimer = null;    // dipakai untuk auto-save setelah berhenti mengetik
+
+  // Ambil elemen-elemen HTML yang akan kita atur
+  const elDaftar = document.getElementById('daftar-catatan');
+  const elPanelTulis = document.getElementById('panel-tulis');
+  const elLayarKosong = document.getElementById('layar-kosong');
+  const elInputJudul = document.getElementById('input-judul');
+  const elInputIsi = document.getElementById('input-isi');
+  const elStatus = document.getElementById('status-simpan');
+
+  // ===== 1. MENGAMBIL DATA DARI SUPABASE (seperti membuka gudang & lihat isinya) =====
+  async function muatSemuaCatatan() {
+    elDaftar.innerHTML = '<p class="info-daftar-kosong">Memuat catatan...</p>';
+    try {
+      const respon = await fetch(
+        `${SUPABASE_URL}/${TABEL}?select=*&order=diubah_pada.desc`,
+        { headers: headerDasar }
+      );
+      if (!respon.ok) throw new Error('Gagal memuat data (' + respon.status + ')');
+      daftarCatatan = await respon.json();
+      gambarDaftar();
+    } catch (kesalahan) {
+      elDaftar.innerHTML = '<p class="info-daftar-kosong">Gagal terhubung ke Supabase.<br>Pastikan tabel "catatan" sudah dibuat.</p>';
+      console.error(kesalahan);
+    }
+  }
+
+  // Menggambar ulang daftar catatan di kolom kiri
+  function gambarDaftar() {
+    if (daftarCatatan.length === 0) {
+      elDaftar.innerHTML = '<p class="info-daftar-kosong">Belum ada catatan.</p>';
+      return;
+    }
+
+    elDaftar.innerHTML = '';
+    daftarCatatan.forEach(function (c) {
+      const item = document.createElement('div');
+      item.className = 'item-catatan' + (c.id === idAktif ? ' aktif' : '');
+      item.innerHTML = `
+        <div class="judul-item">${escapeHTML(c.judul || 'Tanpa judul')}</div>
+        <div class="cuplikan">${escapeHTML((c.isi || '').slice(0, 40) || 'Kosong')}</div>
+      `;
+      item.addEventListener('click', function () { bukaCatatan(c.id); });
+      elDaftar.appendChild(item);
+    });
+  }
+
+  function escapeHTML(teks) {
+    const div = document.createElement('div');
+    div.textContent = teks;
+    return div.innerHTML;
+  }
+
+  // ===== 2. MEMBUAT CATATAN BARU (mengirim paket kosong ke gudang) =====
+  document.getElementById('btn-baru').addEventListener('click', async function () {
+    try {
+      const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
+        method: 'POST',
+        headers: { ...headerDasar, "Prefer": "return=representation" },
+        body: JSON.stringify({ judul: '', isi: '' })
+      });
+      if (!respon.ok) throw new Error('Gagal membuat catatan');
+      const catatanBaru = await respon.json();
+      daftarCatatan.unshift(catatanBaru[0]); // taruh di paling atas rak
+      gambarDaftar();
+      bukaCatatan(catatanBaru[0].id);
+    } catch (kesalahan) {
+      alert('Gagal membuat catatan baru. Cek koneksi atau pengaturan Supabase.');
+      console.error(kesalahan);
+    }
+  });
+
+  // ===== 3. MEMBUKA SATU CATATAN UNTUK DIEDIT =====
+  function bukaCatatan(id) {
+    idAktif = id;
+    const catatan = daftarCatatan.find(c => c.id === id);
+    if (!catatan) return;
+
+    elInputJudul.value = catatan.judul || '';
+    elInputIsi.value = catatan.isi || '';
+    elPanelTulis.style.display = 'flex';
+    elLayarKosong.style.display = 'none';
+    elStatus.textContent = 'Tersimpan';
+    gambarDaftar();
+  }
+
+  // ===== 4. MENYIMPAN PERUBAHAN (mengirim update ke gudang) =====
+  async function simpanCatatan() {
+    if (idAktif === null) return;
+    elStatus.textContent = 'Menyimpan...';
+
+    const dataBaru = {
+      judul: elInputJudul.value,
+      isi: elInputIsi.value,
+      diubah_pada: new Date().toISOString()
+    };
+
+    try {
+      const respon = await fetch(`${SUPABASE_URL}/${TABEL}?id=eq.${idAktif}`, {
+        method: 'PATCH',
+        headers: { ...headerDasar, "Prefer": "return=representation" },
+        body: JSON.stringify(dataBaru)
+      });
+      if (!respon.ok) throw new Error('Gagal menyimpan');
+      const hasil = await respon.json();
+
+      // Perbarui juga salinan data di "rak sementara" kita
+      const idx = daftarCatatan.findIndex(c => c.id === idAktif);
+      if (idx !== -1) daftarCatatan[idx] = hasil[0];
+
+      elStatus.textContent = 'Tersimpan';
+      gambarDaftar();
+    } catch (kesalahan) {
+      elStatus.textContent = 'Gagal menyimpan';
+      console.error(kesalahan);
+    }
+  }
+
+  document.getElementById('btn-simpan').addEventListener('click', simpanCatatan);
+
+  // Auto-save: setelah berhenti mengetik selama 1 detik, otomatis tersimpan.
+  // Ini seperti asisten yang menyimpan pekerjaanmu tanpa perlu diminta terus-menerus.
+  function jadwalkanAutoSave() {
+    elStatus.textContent = 'Mengetik...';
+    clearTimeout(waktuTimer);
+    waktuTimer = setTimeout(simpanCatatan, 1000);
+  }
+  elInputJudul.addEventListener('input', jadwalkanAutoSave);
+  elInputIsi.addEventListener('input', jadwalkanAutoSave);
+
+  // ===== 5. MENGHAPUS CATATAN (membuang kartu dari gudang) =====
+  document.getElementById('btn-hapus').addEventListener('click', async function () {
+    if (idAktif === null) return;
+    const yakin = confirm('Hapus catatan ini? Tindakan ini tidak bisa dibatalkan.');
+    if (!yakin) return;
+
+    try {
+      const respon = await fetch(`${SUPABASE_URL}/${TABEL}?id=eq.${idAktif}`, {
+        method: 'DELETE',
+        headers: headerDasar
+      });
+      if (!respon.ok) throw new Error('Gagal menghapus');
+
+      daftarCatatan = daftarCatatan.filter(c => c.id !== idAktif);
+      idAktif = null;
+      elPanelTulis.style.display = 'none';
+      elLayarKosong.style.display = 'flex';
+      gambarDaftar();
+    } catch (kesalahan) {
+      alert('Gagal menghapus catatan.');
+      console.error(kesalahan);
+    }
+  });
+
+  // Mulai: ambil semua catatan begitu halaman dibuka
+  muatSemuaCatatan();
+</script>
+
+</body>
+</html>
