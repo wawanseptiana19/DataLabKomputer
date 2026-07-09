@@ -20,6 +20,7 @@
     --abu-garis: #d9dfe4;
     --putih: #ffffff;
     --merah: #c53030;
+    --hijau: #2f855a;
   }
 
   * { box-sizing: border-box; }
@@ -75,18 +76,38 @@
   .indikator-live.putus{ color: #f6a8a8; }
   .indikator-live.putus .titik{ background: var(--merah); }
 
-  .btn-baru{
+  .baris-aksi-baru{
+    display: flex;
+    gap: 8px;
     margin: 12px;
+  }
+
+  .btn-baru{
+    flex: 1;
     padding: 9px;
     background: var(--biru-terang);
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
   }
   .btn-baru:hover{ background: var(--biru-tua); }
+
+  .btn-upload{
+    flex: 1;
+    padding: 9px;
+    background: var(--hijau);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-upload:hover{ background: #276749; }
+  .btn-upload:disabled{ opacity: 0.6; cursor: wait; }
 
   .daftar-catatan{
     flex: 1;
@@ -213,6 +234,8 @@
   .tombol-utama:hover{ background: var(--biru-tua); }
   .tombol-hapus{ background: var(--merah); color: white; }
   .tombol-hapus:hover{ background: #9b2c2c; }
+  .tombol-sisip{ background: var(--hijau); color: white; }
+  .tombol-sisip:hover{ background: #276749; }
   .tombol:disabled{ opacity: 0.5; cursor: not-allowed; }
 
   #input-judul{
@@ -288,7 +311,12 @@
       <span>Catatan Saya</span>
       <span class="indikator-live" id="indikator-live"><span class="titik"></span> Live</span>
     </div>
-    <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
+    <div class="baris-aksi-baru">
+      <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
+      <button class="btn-upload" id="btn-upload-txt">⬆ Upload .txt</button>
+      <!-- Input file disembunyikan, kita "pancing" klik-nya lewat tombol hijau di atas -->
+      <input type="file" id="input-file-txt" accept=".txt,text/plain" style="display:none">
+    </div>
     <div class="filter-label" id="filter-label">
       <!-- Diisi otomatis: satu chip per label yang ada, plus "Semua" -->
     </div>
@@ -302,6 +330,7 @@
     <div class="bilah-atas">
       <span class="status-simpan" id="status-simpan">Belum ada perubahan</span>
       <div>
+        <button class="tombol tombol-sisip" id="btn-sisip-txt">⬆ Sisipkan .txt di sini</button>
         <button class="tombol tombol-hapus" id="btn-hapus">Hapus</button>
         <button class="tombol tombol-utama" id="btn-simpan">Simpan</button>
       </div>
@@ -325,7 +354,8 @@
 
   <!-- Tampil kalau belum ada catatan yang dipilih -->
   <div class="layar-kosong" id="layar-kosong">
-    Pilih catatan di sebelah kiri, atau klik "+ Catatan baru" untuk mulai menulis.
+    Pilih catatan di sebelah kiri, klik "+ Catatan baru" untuk mulai menulis,
+    atau klik "⬆ Upload .txt" untuk membuat catatan langsung dari file teks.
   </div>
 
 </div>
@@ -364,6 +394,10 @@
   let waktuTimer = null;    // dipakai untuk auto-save setelah berhenti mengetik
   let labelAktif = null;    // label mana yang sedang dipakai untuk menyaring (null = semua)
 
+  // Ukuran maksimal file .txt yang boleh diupload (2 MB) supaya tidak
+  // kebablasan mengirim file raksasa ke kolom teks database
+  const BATAS_UKURAN_FILE = 2 * 1024 * 1024;
+
   // Ambil elemen-elemen HTML yang akan kita atur
   const elDaftar = document.getElementById('daftar-catatan');
   const elFilterLabel = document.getElementById('filter-label');
@@ -375,6 +409,9 @@
   const elInputStatus = document.getElementById('input-status');
   const elInputIsi = document.getElementById('input-isi');
   const elStatus = document.getElementById('status-simpan');
+  const elBtnUploadTxt = document.getElementById('btn-upload-txt');
+  const elInputFileTxt = document.getElementById('input-file-txt');
+  const elBtnSisipTxt = document.getElementById('btn-sisip-txt');
 
   // ===== 1. MENGAMBIL DATA DARI SUPABASE (seperti membuka gudang & lihat isinya) =====
   async function muatSemuaCatatan() {
@@ -471,23 +508,116 @@
     return div.innerHTML;
   }
 
+  // Fungsi bantuan: buat satu catatan baru di Supabase dengan data awal
+  // yang bisa kita atur (dipakai baik oleh "+ Catatan baru" polos
+  // maupun oleh fitur upload .txt)
+  async function buatCatatanBaru(dataAwal) {
+    const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
+      method: 'POST',
+      headers: { ...headerDasar, "Prefer": "return=representation" },
+      body: JSON.stringify(Object.assign(
+        { judul: '', isi: '', label: '', status: 'hidup' },
+        dataAwal
+      ))
+    });
+    if (!respon.ok) throw new Error('Gagal membuat catatan');
+    const hasil = await respon.json();
+    return hasil[0];
+  }
+
   // ===== 2. MEMBUAT CATATAN BARU (mengirim paket kosong ke gudang) =====
   document.getElementById('btn-baru').addEventListener('click', async function () {
     try {
-      const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
-        method: 'POST',
-        headers: { ...headerDasar, "Prefer": "return=representation" },
-        body: JSON.stringify({ judul: '', isi: '', label: '', status: 'hidup' })
-      });
-      if (!respon.ok) throw new Error('Gagal membuat catatan');
-      const catatanBaru = await respon.json();
-      daftarCatatan.unshift(catatanBaru[0]); // taruh di paling atas rak
+      const catatanBaru = await buatCatatanBaru({});
+      daftarCatatan.unshift(catatanBaru); // taruh di paling atas rak
       gambarDaftar();
-      bukaCatatan(catatanBaru[0].id);
+      bukaCatatan(catatanBaru.id);
     } catch (kesalahan) {
       alert('Gagal membuat catatan baru. Cek koneksi atau pengaturan Supabase.');
       console.error(kesalahan);
     }
+  });
+
+  // ===== 2b. UPLOAD FILE .TXT: isi filenya jadi isi catatan baru =====
+  // Klik tombol hijau "⬆ Upload .txt" -> memicu klik ke <input type="file">
+  // yang sebenarnya (tapi disembunyikan), karena tampilan bawaan file
+  // input browser jelek dan sulit dipercantik lewat CSS.
+  elBtnUploadTxt.addEventListener('click', function () {
+    elInputFileTxt.value = '';           // reset supaya file yang sama bisa dipilih lagi
+    elInputFileTxt.dataset.mode = 'baru'; // tandai: hasil upload akan jadi CATATAN BARU
+    elInputFileTxt.click();
+  });
+
+  // Tombol "⬆ Sisipkan .txt di sini" di editor: isi file akan MENGGANTI
+  // isi catatan yang SEDANG DIBUKA, bukan membuat catatan baru
+  elBtnSisipTxt.addEventListener('click', function () {
+    if (idAktif === null) return;
+    elInputFileTxt.value = '';
+    elInputFileTxt.dataset.mode = 'sisip';
+    elInputFileTxt.click();
+  });
+
+  // Ini yang benar-benar membaca isi file begitu user memilihnya
+  elInputFileTxt.addEventListener('change', async function (peristiwa) {
+    const file = peristiwa.target.files[0];
+    if (!file) return;
+
+    // Validasi sederhana: tolak kalau bukan .txt / bukan teks biasa
+    const namaFileLower = file.name.toLowerCase();
+    const tipeCocok = namaFileLower.endsWith('.txt') ||
+                       file.type === 'text/plain' || file.type === '';
+    if (!tipeCocok) {
+      alert('Hanya file .txt yang didukung ya.');
+      return;
+    }
+    if (file.size > BATAS_UKURAN_FILE) {
+      alert('File terlalu besar (maksimal 2 MB).');
+      return;
+    }
+
+    const mode = elInputFileTxt.dataset.mode || 'baru';
+
+    // FileReader = "juru baca" yang mengubah file di disk komputer kita
+    // menjadi teks biasa yang bisa dipakai JavaScript
+    const pembaca = new FileReader();
+
+    pembaca.onload = async function () {
+      const isiFile = pembaca.result; // ini isi teks lengkap dari file .txt
+      const judulDariNamaFile = file.name.replace(/\.txt$/i, '');
+
+      try {
+        if (mode === 'sisip' && idAktif !== null) {
+          // Timpa isi catatan yang sedang dibuka, biarkan judul/label/status apa adanya
+          elInputIsi.value = isiFile;
+          await simpanCatatan();
+          elStatus.textContent = 'Tersimpan (isi dari ' + file.name + ')';
+        } else {
+          // Buat catatan baru, judul = nama file, isi = isi file
+          elBtnUploadTxt.disabled = true;
+          elBtnUploadTxt.textContent = 'Mengunggah...';
+          const catatanBaru = await buatCatatanBaru({
+            judul: judulDariNamaFile,
+            isi: isiFile
+          });
+          daftarCatatan.unshift(catatanBaru);
+          gambarDaftar();
+          bukaCatatan(catatanBaru.id);
+        }
+      } catch (kesalahan) {
+        alert('Gagal menyimpan isi file ke catatan.');
+        console.error(kesalahan);
+      } finally {
+        elBtnUploadTxt.disabled = false;
+        elBtnUploadTxt.textContent = '⬆ Upload .txt';
+      }
+    };
+
+    pembaca.onerror = function () {
+      alert('Gagal membaca file. Coba lagi.');
+    };
+
+    // Perintah ini yang benar-benar memulai proses baca file sebagai teks
+    pembaca.readAsText(file, 'UTF-8');
   });
 
   // ===== 3. MEMBUKA SATU CATATAN UNTUK DIEDIT =====
