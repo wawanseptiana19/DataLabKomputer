@@ -101,6 +101,7 @@
     padding: 2px 8px;
     border-radius: 20px;
     margin-top: 4px;
+    margin-right: 4px;
     background: #dbe7f3;
     color: var(--biru-tua);
   }
@@ -108,6 +109,20 @@
     background: rgba(255,255,255,0.25);
     color: white;
   }
+
+  /* Badge status, seperti lampu indikator hidup/mati/perbaikan */
+  .badge-status{
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 4px;
+    color: white;
+  }
+  .badge-status.hidup{ background: #0e7c86; }
+  .badge-status.mati{ background: var(--merah); }
+  .badge-status.perbaikan{ background: #b7791f; }
 
   /* Baris filter label di atas daftar catatan */
   .filter-label{
@@ -206,6 +221,15 @@
   }
   #input-label:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
 
+  #input-status{
+    font-size: 13px;
+    padding: 5px 10px;
+    border: 1px solid var(--abu-garis);
+    border-radius: 20px;
+    background: white;
+  }
+  #input-status:focus{ outline: 2px solid var(--biru-terang); outline-offset: 1px; }
+
   #input-isi{
     flex: 1;
     border: none;
@@ -261,6 +285,12 @@
       <datalist id="daftar-label-saran">
         <!-- Diisi otomatis dari label-label yang sudah pernah dipakai -->
       </datalist>
+      <label for="input-status">Status:</label>
+      <select id="input-status">
+        <option value="hidup">Hidup</option>
+        <option value="mati">Mati</option>
+        <option value="perbaikan">Perbaikan</option>
+      </select>
     </div>
     <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
   </div>
@@ -306,6 +336,7 @@
   const elInputJudul = document.getElementById('input-judul');
   const elInputLabel = document.getElementById('input-label');
   const elDaftarLabelSaran = document.getElementById('daftar-label-saran');
+  const elInputStatus = document.getElementById('input-status');
   const elInputIsi = document.getElementById('input-isi');
   const elStatus = document.getElementById('status-simpan');
 
@@ -348,10 +379,12 @@
       const labelHTML = c.label
         ? `<div class="badge-label">${escapeHTML(c.label)}</div>`
         : '';
+      const teksStatus = { hidup: 'Hidup', mati: 'Mati', perbaikan: 'Perbaikan' }[c.status] || 'Hidup';
+      const statusHTML = `<div class="badge-status ${c.status || 'hidup'}">${teksStatus}</div>`;
       item.innerHTML = `
         <div class="judul-item">${escapeHTML(c.judul || 'Tanpa judul')}</div>
         <div class="cuplikan">${escapeHTML((c.isi || '').slice(0, 40) || 'Kosong')}</div>
-        ${labelHTML}
+        ${labelHTML}${statusHTML}
       `;
       item.addEventListener('click', function () { bukaCatatan(c.id); });
       elDaftar.appendChild(item);
@@ -408,7 +441,7 @@
       const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
         method: 'POST',
         headers: { ...headerDasar, "Prefer": "return=representation" },
-        body: JSON.stringify({ judul: '', isi: '', label: '' })
+        body: JSON.stringify({ judul: '', isi: '', label: '', status: 'hidup' })
       });
       if (!respon.ok) throw new Error('Gagal membuat catatan');
       const catatanBaru = await respon.json();
@@ -429,6 +462,7 @@
 
     elInputJudul.value = catatan.judul || '';
     elInputLabel.value = catatan.label || '';
+    elInputStatus.value = catatan.status || 'hidup';
     elInputIsi.value = catatan.isi || '';
     elPanelTulis.style.display = 'flex';
     elLayarKosong.style.display = 'none';
@@ -445,6 +479,7 @@
       judul: elInputJudul.value,
       isi: elInputIsi.value,
       label: elInputLabel.value.trim(),
+      status: elInputStatus.value,
       diubah_pada: new Date().toISOString()
     };
 
@@ -480,6 +515,7 @@
   }
   elInputJudul.addEventListener('input', jadwalkanAutoSave);
   elInputLabel.addEventListener('input', jadwalkanAutoSave);
+  elInputStatus.addEventListener('change', jadwalkanAutoSave);
   elInputIsi.addEventListener('input', jadwalkanAutoSave);
 
   // ===== 5. MENGHAPUS CATATAN (membuang kartu dari gudang) =====
