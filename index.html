@@ -5,14 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notepad - Tersimpan Online</title>
 
-<!-- Library resmi Supabase, dibutuhkan supaya kita bisa "berlangganan siaran
-     langsung" (realtime) perubahan data, bukan cuma tanya sekali lalu selesai -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-  /* ===== CSS: tampilan seperti aplikasi Notepad sungguhan =====
-     Ada 2 kolom: kiri = daftar catatan, kanan = area menulis */
-
   :root{
     --biru-tua: #1e3a5f;
     --biru-terang: #2b6cb0;
@@ -37,7 +32,6 @@
     height: 100vh;
   }
 
-  /* ===== KOLOM KIRI: daftar catatan, seperti daftar file di Notepad ===== */
   .panel-daftar{
     width: 260px;
     flex-shrink: 0;
@@ -58,7 +52,6 @@
     justify-content: space-between;
   }
 
-  /* Titik kecil berkedip = penanda sambungan realtime masih hidup */
   .indikator-live{
     display: flex;
     align-items: center;
@@ -118,12 +111,15 @@
   .item-catatan{
     padding: 10px 12px;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: grab;
     margin-bottom: 4px;
     font-size: 13.5px;
+    border: 2px solid transparent;
   }
   .item-catatan:hover{ background: #e6eaee; }
   .item-catatan.aktif{ background: var(--biru-terang); color: white; }
+  .item-catatan.sedang-diseret{ opacity: 0.4; }
+  .item-catatan.target-drop{ border-top: 2px solid var(--hijau); }
   .item-catatan .judul-item{
     font-weight: 600;
     white-space: nowrap;
@@ -139,7 +135,6 @@
     margin-top: 2px;
   }
 
-  /* Badge label, seperti stiker kecil berwarna di pojok catatan */
   .badge-label{
     display: inline-block;
     font-size: 11px;
@@ -156,7 +151,6 @@
     color: white;
   }
 
-  /* Badge status, seperti lampu indikator hidup/mati/perbaikan */
   .badge-status{
     display: inline-block;
     font-size: 11px;
@@ -170,7 +164,6 @@
   .badge-status.mati{ background: var(--merah); }
   .badge-status.perbaikan{ background: #b7791f; }
 
-  /* Baris filter label di atas daftar catatan */
   .filter-label{
     display: flex;
     flex-wrap: wrap;
@@ -200,7 +193,12 @@
     padding: 20px 12px;
   }
 
-  /* ===== KOLOM KANAN: area menulis, seperti lembar Notepad ===== */
+  .info-urut{
+    font-size: 11.5px;
+    color: #718096;
+    padding: 0 12px 8px 12px;
+  }
+
   .panel-tulis{
     flex: 1;
     display: flex;
@@ -248,7 +246,6 @@
   #input-judul:focus{ outline: none; }
   #input-judul::placeholder{ color: #a0aec0; }
 
-  /* Baris label di editor, di bawah judul */
   .baris-label{
     display: flex;
     align-items: center;
@@ -285,10 +282,6 @@
     padding: 8px 24px 24px 24px;
     font-size: 14.5px;
     line-height: 1.7;
-    /* Monospace supaya hasil "Rapikan Spek PC" (yang pakai spasi buat
-       meratakan kolom) benar-benar rata secara visual. Kalau pakai font
-       biasa (Segoe UI dkk), tiap huruf lebarnya beda-beda, jadi rapinya
-       cuma di kode, bukan di layar. */
     font-family: "Consolas", "Courier New", monospace;
   }
   #input-isi:focus{ outline: none; }
@@ -309,7 +302,6 @@
 
 <div class="app">
 
-  <!-- KOLOM KIRI: daftar semua catatan -->
   <div class="panel-daftar">
     <div class="judul-panel">
       <span>Catatan Saya</span>
@@ -318,18 +310,13 @@
     <div class="baris-aksi-baru">
       <button class="btn-baru" id="btn-baru">+ Catatan baru</button>
       <button class="btn-upload" id="btn-upload-txt">⬆ Upload .txt</button>
-      <!-- Input file disembunyikan, kita "pancing" klik-nya lewat tombol hijau di atas -->
       <input type="file" id="input-file-txt" accept=".txt,text/plain" style="display:none">
     </div>
-    <div class="filter-label" id="filter-label">
-      <!-- Diisi otomatis: satu chip per label yang ada, plus "Semua" -->
-    </div>
-    <div class="daftar-catatan" id="daftar-catatan">
-      <!-- Diisi otomatis oleh JavaScript -->
-    </div>
+    <div class="filter-label" id="filter-label"></div>
+    <div class="info-urut">↕ Seret (drag) catatan untuk mengubah urutan</div>
+    <div class="daftar-catatan" id="daftar-catatan"></div>
   </div>
 
-  <!-- KOLOM KANAN: area menulis -->
   <div class="panel-tulis" id="panel-tulis" style="display:none;">
     <div class="bilah-atas">
       <span class="status-simpan" id="status-simpan">Belum ada perubahan</span>
@@ -344,9 +331,7 @@
     <div class="baris-label">
       <label for="input-label">Label:</label>
       <input type="text" id="input-label" placeholder="Contoh: Tugas, Ide, Penting" list="daftar-label-saran">
-      <datalist id="daftar-label-saran">
-        <!-- Diisi otomatis dari label-label yang sudah pernah dipakai -->
-      </datalist>
+      <datalist id="daftar-label-saran"></datalist>
       <label for="input-status">Status:</label>
       <select id="input-status">
         <option value="hidup">Hidup</option>
@@ -357,7 +342,6 @@
     <textarea id="input-isi" placeholder="Tulis catatanmu di sini..."></textarea>
   </div>
 
-  <!-- Tampil kalau belum ada catatan yang dipilih -->
   <div class="layar-kosong" id="layar-kosong">
     Pilih catatan di sebelah kiri, klik "+ Catatan baru" untuk mulai menulis,
     atau klik "⬆ Upload .txt" untuk membuat catatan langsung dari file teks.
@@ -366,44 +350,32 @@
 </div>
 
 <script>
-  /* ===== JAVASCRIPT =====
-     Analogi: Supabase adalah GUDANG PENYIMPANAN ONLINE.
-     Setiap kali kita "Simpan", kita mengirim paket data ke gudang itu
-     lewat internet (pakai fungsi fetch). Setiap kali membuka aplikasi,
-     kita "meminta" gudang mengirimkan kembali semua catatan yang ada. */
+  /* ===== JAVASCRIPT ===== */
 
-  // Alamat gudang (project Supabase) dan kunci masuknya
   const SUPABASE_URL = "https://qzdvdfebkzlwkhvxwsju.supabase.co/rest/v1";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZHZkZmVia3psd2todnh3c2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcyMTA4OTksImV4cCI6MjA1Mjc4Njg5OX0.Z9XKmX49vu0kZwn6YMom8QeLNNdKQMXCIkxcIoHKQFs";
-  const TABEL = "catatan"; // nama tabel yang kita buat lewat SQL Editor
+  const TABEL = "catatan";
 
-  // Header ini seperti "kartu identitas" yang wajib disertakan
-  // setiap kali kita mengirim permintaan ke gudang Supabase
   const headerDasar = {
     "apikey": SUPABASE_KEY,
     "Authorization": "Bearer " + SUPABASE_KEY,
     "Content-Type": "application/json"
   };
 
-  // Klien khusus untuk REALTIME: ini yang membuka "kabel telepon terbuka"
-  // ke Supabase, supaya kita diberi tahu setiap kali ada perubahan data,
-  // tanpa perlu terus-menerus bertanya (polling).
   const supabaseClient = window.supabase.createClient(
     "https://qzdvdfebkzlwkhvxwsju.supabase.co",
     SUPABASE_KEY
   );
 
-  // "Rak sementara" di memori browser, isinya salinan data dari gudang
   let daftarCatatan = [];
-  let idAktif = null;       // catatan mana yang sedang dibuka
-  let waktuTimer = null;    // dipakai untuk auto-save setelah berhenti mengetik
-  let labelAktif = null;    // label mana yang sedang dipakai untuk menyaring (null = semua)
+  let idAktif = null;
+  let waktuTimer = null;
+  let labelAktif = null;
+  let idSedangDiseret = null; // catatan mana yang sedang di-drag
 
-  // Ukuran maksimal file .txt yang boleh diupload (2 MB) supaya tidak
-  // kebablasan mengirim file raksasa ke kolom teks database
   const BATAS_UKURAN_FILE = 2 * 1024 * 1024;
+  const JARAK_URUTAN = 100; // jarak antar nomor urut, biar ada "ruang" buat sisipan
 
-  // Ambil elemen-elemen HTML yang akan kita atur
   const elDaftar = document.getElementById('daftar-catatan');
   const elFilterLabel = document.getElementById('filter-label');
   const elPanelTulis = document.getElementById('panel-tulis');
@@ -419,32 +391,51 @@
   const elBtnSisipTxt = document.getElementById('btn-sisip-txt');
   const elBtnRapikanSpek = document.getElementById('btn-rapikan-spek');
 
-  // ===== 1. MENGAMBIL DATA DARI SUPABASE (seperti membuka gudang & lihat isinya) =====
+  // ===== Urutan manual =====
+  // Setiap catatan punya kolom "urutan" (angka). Semakin kecil, semakin
+  // atas. Ini yang dipakai untuk MENGURUTKAN TAMPILAN, terpisah dari kapan
+  // data terakhir diubah — jadi urutan tidak pernah berubah sendiri saat
+  // ada data masuk (insert/update dari perangkat lain), hanya berubah
+  // kalau kamu SENDIRI menyeret (drag) catatannya.
+  function nilaiUrutan(c) {
+    return (typeof c.urutan === 'number') ? c.urutan : Number.MAX_SAFE_INTEGER;
+  }
+
+  function urutanTerkecil() {
+    if (daftarCatatan.length === 0) return 0;
+    return Math.min.apply(null, daftarCatatan.map(nilaiUrutan)) - JARAK_URUTAN;
+  }
+
+  // ===== 1. MENGAMBIL DATA DARI SUPABASE =====
   async function muatSemuaCatatan() {
     elDaftar.innerHTML = '<p class="info-daftar-kosong">Memuat catatan...</p>';
     try {
       const respon = await fetch(
-        `${SUPABASE_URL}/${TABEL}?select=*&order=diubah_pada.desc`,
+        `${SUPABASE_URL}/${TABEL}?select=*&order=urutan.asc.nullslast,diubah_pada.desc`,
         { headers: headerDasar }
       );
       if (!respon.ok) throw new Error('Gagal memuat data (' + respon.status + ')');
       daftarCatatan = await respon.json();
       gambarDaftar();
     } catch (kesalahan) {
-      elDaftar.innerHTML = '<p class="info-daftar-kosong">Gagal terhubung ke Supabase.<br>Pastikan tabel "catatan" sudah dibuat.</p>';
+      elDaftar.innerHTML = '<p class="info-daftar-kosong">Gagal terhubung ke Supabase.<br>Pastikan tabel "catatan" sudah dibuat (dan sudah punya kolom "urutan", lihat catatan di bawah kode).</p>';
       console.error(kesalahan);
     }
   }
 
-  // Menggambar ulang daftar catatan di kolom kiri (menghormati filter label yang aktif)
+  // Menggambar ulang daftar catatan di kolom kiri, SELALU diurutkan
+  // berdasarkan field "urutan" — bukan berdasarkan urutan array
+  // "daftarCatatan" apa adanya. Jadi walau item baru masuk lewat
+  // realtime dan ditambahkan sembarang posisi ke array, tampilannya
+  // tetap konsisten sesuai urutan yang sudah kamu atur.
   function gambarDaftar() {
     gambarChipFilter();
     gambarSaranLabel();
 
-    // Saring dulu berdasarkan label yang sedang dipilih (kalau ada)
-    const dataTampil = labelAktif === null
-      ? daftarCatatan
-      : daftarCatatan.filter(c => (c.label || '').trim() === labelAktif);
+    const dataTampil = (labelAktif === null
+      ? daftarCatatan.slice()
+      : daftarCatatan.filter(c => (c.label || '').trim() === labelAktif)
+    ).sort((a, b) => nilaiUrutan(a) - nilaiUrutan(b));
 
     if (dataTampil.length === 0) {
       elDaftar.innerHTML = '<p class="info-daftar-kosong">Belum ada catatan.</p>';
@@ -455,6 +446,8 @@
     dataTampil.forEach(function (c) {
       const item = document.createElement('div');
       item.className = 'item-catatan' + (c.id === idAktif ? ' aktif' : '');
+      item.draggable = true;
+      item.dataset.id = c.id;
       const labelHTML = c.label
         ? `<div class="badge-label">${escapeHTML(c.label)}</div>`
         : '';
@@ -466,12 +459,131 @@
         ${labelHTML}${statusHTML}
       `;
       item.addEventListener('click', function () { bukaCatatan(c.id); });
+      pasangDragAndDrop(item, c.id);
       elDaftar.appendChild(item);
     });
   }
 
-  // Mengumpulkan semua label unik yang sedang dipakai, lalu menggambar
-  // "chip" filter di atas daftar (seperti tab pemilah warna stiker)
+  // ===== Drag & drop untuk mengatur urutan manual =====
+  // Analogi: kartu catatan itu seperti kartu fisik di rak. Kamu ANGKAT
+  // satu kartu (dragstart), GESER di atas kartu lain (dragover — di sini
+  // cuma kasih tanda garis hijau di atas target), lalu LEPAS (drop) di
+  // posisi yang kamu mau. Begitu dilepas, kita hitung ulang nomor urut
+  // di sekitar situ saja (bukan seluruh daftar) dan kirim ke Supabase.
+  function pasangDragAndDrop(item, id) {
+    item.addEventListener('dragstart', function (e) {
+      idSedangDiseret = id;
+      item.classList.add('sedang-diseret');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', function () {
+      item.classList.remove('sedang-diseret');
+      idSedangDiseret = null;
+      document.querySelectorAll('.target-drop').forEach(el => el.classList.remove('target-drop'));
+    });
+
+    item.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if (idSedangDiseret === null || idSedangDiseret === id) return;
+      item.classList.add('target-drop');
+    });
+
+    item.addEventListener('dragleave', function () {
+      item.classList.remove('target-drop');
+    });
+
+    item.addEventListener('drop', function (e) {
+      e.preventDefault();
+      item.classList.remove('target-drop');
+      if (idSedangDiseret === null || idSedangDiseret === id) return;
+      pindahkanUrutan(idSedangDiseret, id);
+    });
+  }
+
+  // Menaruh catatan "idDiseret" tepat SEBELUM catatan "idTarget" dalam
+  // urutan tampil, dengan menghitung ulang nomor "urutan" secukupnya.
+  async function pindahkanUrutan(idDiseret, idTarget) {
+    const urut = daftarCatatan.slice().sort((a, b) => nilaiUrutan(a) - nilaiUrutan(b));
+    const idxTarget = urut.findIndex(c => c.id === idTarget);
+    if (idxTarget === -1) return;
+
+    // Nomor urut tetangga di atas target (yang jadi batas atas rentang baru)
+    const urutanAtas = idxTarget > 0 ? nilaiUrutan(urut[idxTarget - 1]) : nilaiUrutan(urut[idxTarget]) - JARAK_URUTAN * 2;
+    const urutanBawah = nilaiUrutan(urut[idxTarget]);
+
+    let urutanBaru;
+    if (idDiseret === (urut[idxTarget - 1] || {}).id) {
+      // Sudah pas di posisi itu, tidak perlu apa-apa
+      return;
+    }
+    // Ambil titik tengah antara dua tetangga sebagai nomor urut baru
+    urutanBaru = (urutanAtas + urutanBawah) / 2;
+
+    // Kalau jaraknya sudah terlalu mepet (misalnya sudah sering disisipi),
+    // renumber ulang SELURUH daftar dengan jarak rapi supaya ada ruang lagi
+    if (!isFinite(urutanBaru) || Math.abs(urutanBawah - urutanAtas) < 1) {
+      await renumberSemua(idDiseret, idxTarget);
+      return;
+    }
+
+    await terapkanUrutanBaru(idDiseret, urutanBaru);
+  }
+
+  async function terapkanUrutanBaru(id, urutanBaru) {
+    const idx = daftarCatatan.findIndex(c => c.id === id);
+    if (idx === -1) return;
+    daftarCatatan[idx] = Object.assign({}, daftarCatatan[idx], { urutan: urutanBaru });
+    gambarDaftar(); // update tampilan langsung, tidak perlu nunggu server
+
+    try {
+      await fetch(`${SUPABASE_URL}/${TABEL}?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: headerDasar,
+        body: JSON.stringify({ urutan: urutanBaru })
+      });
+    } catch (kesalahan) {
+      console.error('Gagal menyimpan urutan baru', kesalahan);
+    }
+  }
+
+  // Renumber ulang seluruh daftar dengan jarak rapi (0, 100, 200, ...),
+  // sambil menyisipkan idDiseret tepat sebelum posisi idxTarget.
+  async function renumberSemua(idDiseret, idxTarget) {
+    const urut = daftarCatatan.slice().sort((a, b) => nilaiUrutan(a) - nilaiUrutan(b));
+    const tanpaDiseret = urut.filter(c => c.id !== idDiseret);
+    const catatanDiseret = urut.find(c => c.id === idDiseret);
+
+    // idxTarget dihitung dari daftar LAMA (termasuk yg diseret), jadi
+    // sesuaikan posisinya di daftar yg sudah dibuang elemen diseretnya
+    let posisiSisip = tanpaDiseret.findIndex(c => c.id === urut[idxTarget].id);
+    if (posisiSisip === -1) posisiSisip = tanpaDiseret.length;
+
+    tanpaDiseret.splice(posisiSisip, 0, catatanDiseret);
+
+    const pembaruan = tanpaDiseret.map((c, i) => ({ id: c.id, urutan: i * JARAK_URUTAN }));
+
+    // Perbarui salinan lokal dulu biar tampilan langsung rapi
+    pembaruan.forEach(function (p) {
+      const idx = daftarCatatan.findIndex(c => c.id === p.id);
+      if (idx !== -1) daftarCatatan[idx] = Object.assign({}, daftarCatatan[idx], { urutan: p.urutan });
+    });
+    gambarDaftar();
+
+    // Kirim semua pembaruan ke Supabase sekaligus (paralel)
+    try {
+      await Promise.all(pembaruan.map(function (p) {
+        return fetch(`${SUPABASE_URL}/${TABEL}?id=eq.${p.id}`, {
+          method: 'PATCH',
+          headers: headerDasar,
+          body: JSON.stringify({ urutan: p.urutan })
+        });
+      }));
+    } catch (kesalahan) {
+      console.error('Gagal renumber urutan', kesalahan);
+    }
+  }
+
   function gambarChipFilter() {
     const labelUnik = [...new Set(
       daftarCatatan.map(c => (c.label || '').trim()).filter(l => l !== '')
@@ -488,7 +600,6 @@
     });
     elFilterLabel.innerHTML = html;
 
-    // Pasang "penjaga pintu" klik untuk tiap chip
     elFilterLabel.querySelectorAll('.chip-filter').forEach(function (chip) {
       chip.addEventListener('click', function () {
         const nilai = chip.getAttribute('data-label');
@@ -498,7 +609,6 @@
     });
   }
 
-  // Mengisi daftar saran (autocomplete) di input label, dari label yang sudah pernah dipakai
   function gambarSaranLabel() {
     const labelUnik = [...new Set(
       daftarCatatan.map(c => (c.label || '').trim()).filter(l => l !== '')
@@ -515,21 +625,11 @@
   }
 
   // ===== FITUR "RAPIKAN SPEK PC" =====
-  // Latar belakang: kalau kita copy dari Settings > System > About di Windows,
-  // hasilnya berupa baris-baris "Nama Field [TAB] Isinya", tapi begitu
-  // ditempel (paste) ke tempat lain, tab-nya sering berantakan/gak rata.
-  // Fungsi ini "membaca" pola itu, lalu menyusun ulang jadi rapi & sejajar.
-  //
-  // Analoginya: ini kayak petugas gudang yang nerima kardus-kardus acak
-  // (baris teks mentah), ngecek satu-satu apakah isinya "label: isi"
-  // (dipisah tab), terus nyusun ulang ke rak dengan label yang sama
-  // panjangnya, biar kelihatan rapi kayak tabel.
   function rapikanSpekPC(teksMentah) {
     const baris = teksMentah.split(/\r?\n/).filter(function (b) { return b.trim() !== ''; });
     const pasangan = [];
 
     baris.forEach(function (b) {
-      // Pisahkan berdasarkan satu tab atau lebih (kadang ada tab ganda)
       const bagian = b.split(/\t+/);
       if (bagian.length >= 2) {
         const kunci = bagian[0].trim();
@@ -538,10 +638,6 @@
       }
     });
 
-    // Kalau kurang dari 3 baris yang cocok format "kunci [tab] nilai",
-    // kita anggap ini BUKAN tabel spek PC, jadi jangan diutak-atik.
-    // Ini penting supaya paste teks biasa (misal draft tulisan) tidak
-    // ikut "dirapikan" secara tidak diinginkan.
     if (pasangan.length < 3) return null;
 
     const panjangKunciMaksimal = Math.max.apply(null, pasangan.map(function (p) { return p[0].length; }));
@@ -558,8 +654,6 @@
     };
   }
 
-  // Menyisipkan teks baru persis di posisi kursor (atau menimpa teks
-  // yang sedang di-blok), lalu kursor dipindah ke akhir teks yang disisipkan
   function sisipkanTeksDiKursor(textarea, teksBaru) {
     const mulai = textarea.selectionStart;
     const akhir = textarea.selectionEnd;
@@ -569,8 +663,6 @@
     textarea.selectionStart = textarea.selectionEnd = posisiBaru;
   }
 
-  // Terapkan hasil rapikan ke editor: isi teks, dan kalau judul/label
-  // masih kosong, isi otomatis biar makin males-ngetik-friendly :)
   function terapkanHasilRapikan(hasil) {
     if (!hasil) return false;
     elInputIsi.value = hasil.teks;
@@ -584,8 +676,6 @@
     return true;
   }
 
-  // Deteksi OTOMATIS saat paste: begitu kamu tempel hasil copy dari
-  // halaman About Windows, langsung dirapikan tanpa perlu klik tombol
   elInputIsi.addEventListener('paste', function (peristiwa) {
     const papanKlip = peristiwa.clipboardData || window.clipboardData;
     if (!papanKlip) return;
@@ -593,7 +683,7 @@
     if (!teksAsli) return;
 
     const hasil = rapikanSpekPC(teksAsli);
-    if (!hasil) return; // bukan format spek PC, biarkan paste berjalan normal
+    if (!hasil) return;
 
     peristiwa.preventDefault();
     sisipkanTeksDiKursor(elInputIsi, hasil.teks);
@@ -604,9 +694,6 @@
     jadwalkanAutoSave();
   });
 
-  // Tombol manual "🖥 Rapikan Spek PC": buat jaga-jaga kalau kamu sudah
-  // terlanjur paste dengan cara biasa (jadi berantakan), tinggal klik ini
-  // dan seluruh isi catatan akan dicoba dirapikan ulang.
   elBtnRapikanSpek.addEventListener('click', function () {
     if (idAktif === null) return;
     const berhasil = terapkanHasilRapikan(rapikanSpekPC(elInputIsi.value));
@@ -615,15 +702,16 @@
     }
   });
 
-  // Fungsi bantuan: buat satu catatan baru di Supabase dengan data awal
-  // yang bisa kita atur (dipakai baik oleh "+ Catatan baru" polos
-  // maupun oleh fitur upload .txt)
+  // Membuat satu catatan baru di Supabase. Catatan baru selalu ditaruh
+  // di PALING ATAS urutan manual (urutan = urutan terkecil - JARAK_URUTAN),
+  // supaya kamu tidak perlu drag manual tiap bikin catatan baru, tapi
+  // urutan catatan lama yang sudah kamu susun tetap aman tidak berubah.
   async function buatCatatanBaru(dataAwal) {
     const respon = await fetch(`${SUPABASE_URL}/${TABEL}`, {
       method: 'POST',
       headers: { ...headerDasar, "Prefer": "return=representation" },
       body: JSON.stringify(Object.assign(
-        { judul: '', isi: '', label: '', status: 'hidup' },
+        { judul: '', isi: '', label: '', status: 'hidup', urutan: urutanTerkecil() },
         dataAwal
       ))
     });
@@ -632,11 +720,10 @@
     return hasil[0];
   }
 
-  // ===== 2. MEMBUAT CATATAN BARU (mengirim paket kosong ke gudang) =====
   document.getElementById('btn-baru').addEventListener('click', async function () {
     try {
       const catatanBaru = await buatCatatanBaru({});
-      daftarCatatan.unshift(catatanBaru); // taruh di paling atas rak
+      daftarCatatan.unshift(catatanBaru);
       gambarDaftar();
       bukaCatatan(catatanBaru.id);
     } catch (kesalahan) {
@@ -645,18 +732,12 @@
     }
   });
 
-  // ===== 2b. UPLOAD FILE .TXT: isi filenya jadi isi catatan baru =====
-  // Klik tombol hijau "⬆ Upload .txt" -> memicu klik ke <input type="file">
-  // yang sebenarnya (tapi disembunyikan), karena tampilan bawaan file
-  // input browser jelek dan sulit dipercantik lewat CSS.
   elBtnUploadTxt.addEventListener('click', function () {
-    elInputFileTxt.value = '';           // reset supaya file yang sama bisa dipilih lagi
-    elInputFileTxt.dataset.mode = 'baru'; // tandai: hasil upload akan jadi CATATAN BARU
+    elInputFileTxt.value = '';
+    elInputFileTxt.dataset.mode = 'baru';
     elInputFileTxt.click();
   });
 
-  // Tombol "⬆ Sisipkan .txt di sini" di editor: isi file akan MENGGANTI
-  // isi catatan yang SEDANG DIBUKA, bukan membuat catatan baru
   elBtnSisipTxt.addEventListener('click', function () {
     if (idAktif === null) return;
     elInputFileTxt.value = '';
@@ -664,12 +745,10 @@
     elInputFileTxt.click();
   });
 
-  // Ini yang benar-benar membaca isi file begitu user memilihnya
   elInputFileTxt.addEventListener('change', async function (peristiwa) {
     const file = peristiwa.target.files[0];
     if (!file) return;
 
-    // Validasi sederhana: tolak kalau bukan .txt / bukan teks biasa
     const namaFileLower = file.name.toLowerCase();
     const tipeCocok = namaFileLower.endsWith('.txt') ||
                        file.type === 'text/plain' || file.type === '';
@@ -683,29 +762,22 @@
     }
 
     const mode = elInputFileTxt.dataset.mode || 'baru';
-
-    // FileReader = "juru baca" yang mengubah file di disk komputer kita
-    // menjadi teks biasa yang bisa dipakai JavaScript
     const pembaca = new FileReader();
 
     pembaca.onload = async function () {
-      const isiFileMentah = pembaca.result; // ini isi teks lengkap dari file .txt
+      const isiFileMentah = pembaca.result;
       const judulDariNamaFile = file.name.replace(/\.txt$/i, '');
 
-      // Kalau ternyata file .txt-nya juga berformat "spek PC" (key TAB value),
-      // langsung dirapikan juga di sini, biar hasil upload gak perlu dirapikan manual lagi
       const hasilRapi = rapikanSpekPC(isiFileMentah);
       const isiFile = hasilRapi ? hasilRapi.teks : isiFileMentah;
 
       try {
         if (mode === 'sisip' && idAktif !== null) {
-          // Timpa isi catatan yang sedang dibuka, biarkan judul/label/status apa adanya
           elInputIsi.value = isiFile;
           if (hasilRapi && !elInputLabel.value.trim()) elInputLabel.value = 'Spek PC';
           await simpanCatatan();
           elStatus.textContent = 'Tersimpan (isi dari ' + file.name + ')';
         } else {
-          // Buat catatan baru, judul = nama file (atau nama device kalau kedeteksi spek PC)
           elBtnUploadTxt.disabled = true;
           elBtnUploadTxt.textContent = 'Mengunggah...';
           const judulFinal = (hasilRapi && hasilRapi.deviceName)
@@ -733,11 +805,9 @@
       alert('Gagal membaca file. Coba lagi.');
     };
 
-    // Perintah ini yang benar-benar memulai proses baca file sebagai teks
     pembaca.readAsText(file, 'UTF-8');
   });
 
-  // ===== 3. MEMBUKA SATU CATATAN UNTUK DIEDIT =====
   function bukaCatatan(id) {
     idAktif = id;
     const catatan = daftarCatatan.find(c => c.id === id);
@@ -753,7 +823,9 @@
     gambarDaftar();
   }
 
-  // ===== 4. MENYIMPAN PERUBAHAN (mengirim update ke gudang) =====
+  // Simpan konten catatan. SENGAJA tidak menyentuh field "urutan" di
+  // sini, supaya menyimpan isi/judul/label/status tidak pernah ikut
+  // menggeser posisi catatan di daftar.
   async function simpanCatatan() {
     if (idAktif === null) return;
     elStatus.textContent = 'Menyimpan...';
@@ -775,7 +847,6 @@
       if (!respon.ok) throw new Error('Gagal menyimpan');
       const hasil = await respon.json();
 
-      // Perbarui juga salinan data di "rak sementara" kita
       const idx = daftarCatatan.findIndex(c => c.id === idAktif);
       if (idx !== -1) daftarCatatan[idx] = hasil[0];
 
@@ -789,8 +860,6 @@
 
   document.getElementById('btn-simpan').addEventListener('click', simpanCatatan);
 
-  // Auto-save: setelah berhenti mengetik selama 1 detik, otomatis tersimpan.
-  // Ini seperti asisten yang menyimpan pekerjaanmu tanpa perlu diminta terus-menerus.
   function jadwalkanAutoSave() {
     elStatus.textContent = 'Mengetik...';
     clearTimeout(waktuTimer);
@@ -801,7 +870,6 @@
   elInputStatus.addEventListener('change', jadwalkanAutoSave);
   elInputIsi.addEventListener('input', jadwalkanAutoSave);
 
-  // ===== 5. MENGHAPUS CATATAN (membuang kartu dari gudang) =====
   document.getElementById('btn-hapus').addEventListener('click', async function () {
     if (idAktif === null) return;
     const yakin = confirm('Hapus catatan ini? Tindakan ini tidak bisa dibatalkan.');
@@ -826,21 +894,21 @@
   });
 
   // ===== 6. MENDENGARKAN SIARAN LANGSUNG (REALTIME) =====
-  // Setiap kali ada baris ditambah/diubah/dihapus di tabel "catatan"
-  // (oleh kita sendiri ATAU orang lain yang buka aplikasi ini),
-  // Supabase akan mengirim "kabar" ke sini secara otomatis.
+  // Catatan penting: di sini kita TIDAK PERNAH mengubah urutan tampil
+  // gara-gara ada data masuk. Item baru (INSERT) cukup ditambahkan ke
+  // rak (array), lalu gambarDaftar() yang akan mengurutkannya sesuai
+  // field "urutan" masing-masing — kalau item itu belum punya urutan,
+  // otomatis nangkring di paling bawah, tidak menyerobot posisi yang
+  // sudah kamu atur.
   const elIndikatorLive = document.getElementById('indikator-live');
 
   supabaseClient
     .channel('siaran-catatan')
     .on('postgres_changes', { event: '*', schema: 'public', table: TABEL }, function (kabar) {
       if (kabar.eventType === 'INSERT') {
-        // Kalau catatan ini belum ada di rak kita (misalnya dibuat oleh
-        // komputer lain), tambahkan. Kalau sudah ada (kita sendiri yang
-        // baru membuatnya), tidak usah digandakan.
         const sudahAda = daftarCatatan.some(c => c.id === kabar.new.id);
         if (!sudahAda) {
-          daftarCatatan.unshift(kabar.new);
+          daftarCatatan.push(kabar.new);
           gambarDaftar();
         }
       }
@@ -849,9 +917,6 @@
         const idx = daftarCatatan.findIndex(c => c.id === kabar.new.id);
         if (idx !== -1) daftarCatatan[idx] = kabar.new;
 
-        // Kalau catatan yang sedang kita buka diubah oleh ORANG LAIN
-        // (bukan kita yang sedang mengetik), perbarui juga tampilan
-        // editornya, supaya kita tidak melihat versi lama.
         const sedangMengetik = document.activeElement === elInputJudul ||
                                 document.activeElement === elInputLabel ||
                                 document.activeElement === elInputStatus ||
@@ -876,7 +941,6 @@
       }
     })
     .subscribe(function (status) {
-      // Menampilkan status sambungan: hijau kalau tersambung, merah kalau putus
       if (status === 'SUBSCRIBED') {
         elIndikatorLive.classList.remove('putus');
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -884,7 +948,6 @@
       }
     });
 
-  // Mulai: ambil semua catatan begitu halaman dibuka
   muatSemuaCatatan();
 </script>
 
