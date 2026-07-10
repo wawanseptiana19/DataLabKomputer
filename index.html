@@ -791,12 +791,27 @@
         }
 
         // Update Statistics
+        // Kartu statistik (Total Barang & sebaran Kondisi) mengikuti filter
+        // Ruangan dan Kategori yang sedang dipilih di Panel Kontrol & Filter.
         function updateStats() {
-            const total = inventoryItems.reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
-            const baik = inventoryItems.filter(item => item.condition === 'Baik').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
-            const idle = inventoryItems.filter(item => item.condition === 'Idle').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
-            const rusakRingan = inventoryItems.filter(item => item.condition === 'Rusak Ringan').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
-            const rusakBerat = inventoryItems.filter(item => item.condition === 'Rusak Berat').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const filterRoomEl = document.getElementById('filterRoom');
+            const filterCategoryEl = document.getElementById('filterCategory');
+            const selectedRoom = filterRoomEl ? filterRoomEl.value : 'Semua';
+            const selectedCategory = filterCategoryEl ? filterCategoryEl.value : 'Semua';
+
+            // Hanya disaring berdasarkan Ruangan & Kategori (bukan Kondisi),
+            // karena kartu ini sendiri menampilkan sebaran per Kondisi.
+            const statsItems = inventoryItems.filter(item => {
+                const matchesRoom = selectedRoom === 'Semua' || item.room === selectedRoom;
+                const matchesCategory = selectedCategory === 'Semua' || item.category === selectedCategory;
+                return matchesRoom && matchesCategory;
+            });
+
+            const total = statsItems.reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const baik = statsItems.filter(item => item.condition === 'Baik').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const idle = statsItems.filter(item => item.condition === 'Idle').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const rusakRingan = statsItems.filter(item => item.condition === 'Rusak Ringan').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
+            const rusakBerat = statsItems.filter(item => item.condition === 'Rusak Berat').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
 
             document.getElementById('statTotal').innerText = total;
             document.getElementById('statBaik').innerText = baik;
@@ -887,6 +902,7 @@
                 return matchesSearch && matchesRoom && matchesCategory && matchesCondition;
             });
 
+            updateStats();
             renderTable(filteredItems);
         }
 
