@@ -94,7 +94,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
                 <div class="space-y-1">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Barang</p>
-                    <h3 class="text-3xl font-bold text-slate-800" id="statTotal">0</h3>
+                    <h3 class="text-3xl font-bold text-slate-800 inline-block transition-transform duration-300 will-change-transform" id="statTotal">0</h3>
                 </div>
                 <div class="bg-indigo-50 text-indigo-600 p-4 rounded-xl">
                     <i class="fa-solid fa-boxes-stacked text-2xl"></i>
@@ -104,7 +104,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
                 <div class="space-y-1">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kondisi Baik</p>
-                    <h3 class="text-3xl font-bold text-emerald-600" id="statBaik">0</h3>
+                    <h3 class="text-3xl font-bold text-emerald-600 inline-block transition-transform duration-300 will-change-transform" id="statBaik">0</h3>
                 </div>
                 <div class="bg-emerald-50 text-emerald-600 p-4 rounded-xl">
                     <i class="fa-solid fa-circle-check text-2xl"></i>
@@ -114,7 +114,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
                 <div class="space-y-1">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kondisi Idle</p>
-                    <h3 class="text-3xl font-bold text-sky-600" id="statIdle">0</h3>
+                    <h3 class="text-3xl font-bold text-sky-600 inline-block transition-transform duration-300 will-change-transform" id="statIdle">0</h3>
                 </div>
                 <div class="bg-sky-50 text-sky-600 p-4 rounded-xl">
                     <i class="fa-solid fa-circle-pause text-2xl"></i>
@@ -124,7 +124,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
                 <div class="space-y-1">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rusak Ringan</p>
-                    <h3 class="text-3xl font-bold text-amber-600" id="statRusakRingan">0</h3>
+                    <h3 class="text-3xl font-bold text-amber-600 inline-block transition-transform duration-300 will-change-transform" id="statRusakRingan">0</h3>
                 </div>
                 <div class="bg-amber-50 text-amber-500 p-4 rounded-xl">
                     <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
@@ -134,7 +134,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200">
                 <div class="space-y-1">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rusak Berat</p>
-                    <h3 class="text-3xl font-bold text-rose-600" id="statRusakBerat">0</h3>
+                    <h3 class="text-3xl font-bold text-rose-600 inline-block transition-transform duration-300 will-change-transform" id="statRusakBerat">0</h3>
                 </div>
                 <div class="bg-rose-50 text-rose-600 p-4 rounded-xl">
                     <i class="fa-solid fa-circle-xmark text-2xl"></i>
@@ -695,9 +695,15 @@
         }
 
         // Initialize / Update Category Chart
+        // Ikut menyesuaikan dengan filter Ruangan yang dipilih di Panel Kontrol & Filter.
         function updateCategoryChart() {
+            const filterRoomEl = document.getElementById('filterRoom');
+            const selectedRoom = filterRoomEl ? filterRoomEl.value : 'Semua';
+
+            const scopedItems = inventoryItems.filter(item => selectedRoom === 'Semua' || item.room === selectedRoom);
+
             const counts = categoriesList.map(cat => {
-                return inventoryItems
+                return scopedItems
                     .filter(item => item.category === cat)
                     .reduce((total, item) => total + parseInt(item.quantity || 0), 0);
             });
@@ -708,11 +714,18 @@
             ];
 
             const backgroundColors = categoriesList.map((_, index) => palette[index % palette.length]);
-            const ctx = document.getElementById('categoryChart').getContext('2d');
-            
+
             if (categoryChartInstance) {
-                categoryChartInstance.destroy();
+                // Update data pada chart yang sudah ada supaya Chart.js
+                // menganimasikan transisi antar nilai lama & baru dengan mulus.
+                categoryChartInstance.data.labels = categoriesList;
+                categoryChartInstance.data.datasets[0].data = counts;
+                categoryChartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                categoryChartInstance.update();
+                return;
             }
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
 
             categoryChartInstance = new Chart(ctx, {
                 type: 'doughnut',
@@ -728,6 +741,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 700,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -745,20 +762,37 @@
         }
 
         // Initialize / Update Condition Chart
+        // Ikut menyesuaikan dengan filter Ruangan & Kategori yang dipilih di Panel Kontrol & Filter.
         function updateConditionChart() {
+            const filterRoomEl = document.getElementById('filterRoom');
+            const filterCategoryEl = document.getElementById('filterCategory');
+            const selectedRoom = filterRoomEl ? filterRoomEl.value : 'Semua';
+            const selectedCategory = filterCategoryEl ? filterCategoryEl.value : 'Semua';
+
+            const scopedItems = inventoryItems.filter(item => {
+                const matchesRoom = selectedRoom === 'Semua' || item.room === selectedRoom;
+                const matchesCategory = selectedCategory === 'Semua' || item.category === selectedCategory;
+                return matchesRoom && matchesCategory;
+            });
+
             const conditions = ['Baik', 'Idle', 'Rusak Ringan', 'Rusak Berat'];
             const counts = conditions.map(cond => {
-                return inventoryItems
+                return scopedItems
                     .filter(item => item.condition === cond)
                     .reduce((total, item) => total + parseInt(item.quantity || 0), 0);
             });
 
             const colors = ['#10b981', '#38bdf8', '#f59e0b', '#f43f5e'];
-            const ctx = document.getElementById('conditionChart').getContext('2d');
 
             if (conditionChartInstance) {
-                conditionChartInstance.destroy();
+                // Update data pada chart yang sudah ada supaya Chart.js
+                // menganimasikan transisi antar nilai lama & baru dengan mulus.
+                conditionChartInstance.data.datasets[0].data = counts;
+                conditionChartInstance.update();
+                return;
             }
+
+            const ctx = document.getElementById('conditionChart').getContext('2d');
 
             conditionChartInstance = new Chart(ctx, {
                 type: 'doughnut',
@@ -774,6 +808,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 700,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -788,6 +826,50 @@
                     cutout: '70%'
                 }
             });
+        }
+
+        // Animasi hitung angka (count-up/count-down) untuk kartu statistik.
+        // Setiap elemen menyimpan frame animasinya sendiri (el._countAnimFrame)
+        // supaya jika nilai berubah lagi sebelum animasi selesai, animasi lama
+        // langsung dibatalkan dan diganti dengan yang baru (tidak tumpang tindih).
+        function animateCountTo(elementId, newValue) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            const startValue = parseInt(el.innerText, 10) || 0;
+            newValue = parseInt(newValue, 10) || 0;
+
+            if (startValue === newValue) {
+                el.innerText = newValue;
+                return;
+            }
+
+            if (el._countAnimFrame) {
+                cancelAnimationFrame(el._countAnimFrame);
+            }
+
+            const duration = 600; // ms
+            const startTime = performance.now();
+
+            // Efek "pop" kecil setiap kali nilainya berubah
+            el.classList.add('scale-110');
+            setTimeout(() => el.classList.remove('scale-110'), duration);
+
+            function step(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 4); // easeOutQuart
+                const currentValue = Math.round(startValue + (newValue - startValue) * eased);
+                el.innerText = currentValue;
+
+                if (progress < 1) {
+                    el._countAnimFrame = requestAnimationFrame(step);
+                } else {
+                    el.innerText = newValue;
+                    el._countAnimFrame = null;
+                }
+            }
+
+            el._countAnimFrame = requestAnimationFrame(step);
         }
 
         // Update Statistics
@@ -813,12 +895,14 @@
             const rusakRingan = statsItems.filter(item => item.condition === 'Rusak Ringan').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
             const rusakBerat = statsItems.filter(item => item.condition === 'Rusak Berat').reduce((acc, item) => acc + parseInt(item.quantity || 0), 0);
 
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statBaik').innerText = baik;
-            document.getElementById('statIdle').innerText = idle;
-            document.getElementById('statRusakRingan').innerText = rusakRingan;
-            document.getElementById('statRusakBerat').innerText = rusakBerat;
+            animateCountTo('statTotal', total);
+            animateCountTo('statBaik', baik);
+            animateCountTo('statIdle', idle);
+            animateCountTo('statRusakRingan', rusakRingan);
+            animateCountTo('statRusakBerat', rusakBerat);
         }
+
+
 
         // Render Categories and Room Filter/Suggestions Dynamically
         function refreshDynamicDropdowns() {
@@ -903,6 +987,8 @@
             });
 
             updateStats();
+            updateCategoryChart();
+            updateConditionChart();
             renderTable(filteredItems);
         }
 
