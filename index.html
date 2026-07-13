@@ -639,6 +639,18 @@
         let conditionChartInstance = null;
         let activeDetailItemId = null; // Menyimpan ID barang yang sedang dibuka di modal detail
         let qrTextAktif = ''; // Menyimpan isi teks QR yang sedang ditampilkan (untuk nama file unduhan)
+        let labelQrAktif = ''; // Menyimpan label tampilan (Nama Device) untuk digambar di bawah QR saat diunduh
+
+        // Mencari nilai baris "Device Name" pada teks spesifikasi (Kertas Notepad)
+        function ambilNamaDeviceDariSpesifikasi(teksSpesifikasi) {
+            if (!teksSpesifikasi) return '';
+            const baris = teksSpesifikasi.split(/\r?\n/);
+            for (const b of baris) {
+                const cocok = b.match(/device name\s*:?\s*(.+)/i);
+                if (cocok && cocok[1].trim()) return cocok[1].trim();
+            }
+            return '';
+        }
 
         // Escape HTML to prevent injection
         function escapeHtml(text) {
@@ -1088,14 +1100,17 @@
             // - Kategori PC     -> isi QR hanya Nama PC / ID PC
             // - Selain PC       -> isi QR hanya Nama Barang / Spesifikasi Lengkap
             let qrText = '';
+            let labelTampil = '';
             if (item.category === 'PC' && item.pcName) {
                 qrText = item.pcName;
-                document.getElementById('qrItemTitle').innerText = item.pcName;
+                labelTampil = ambilNamaDeviceDariSpesifikasi(item.name) || item.pcName;
             } else {
                 qrText = item.name;
-                document.getElementById('qrItemTitle').innerText = item.name.split('\n')[0];
+                labelTampil = item.name.split('\n')[0];
             }
-            qrTextAktif = qrText; // simpan agar bisa dipakai saat mengunduh
+            document.getElementById('qrItemTitle').innerText = labelTampil;
+            qrTextAktif = qrText; // simpan agar bisa dipakai saat mengunduh (isi QR & nama file)
+            labelQrAktif = labelTampil; // simpan label tampilan untuk digambar di bawah QR saat diunduh
 
             // Membangun QR Code menggunakan QRious Library
             new QRious({
@@ -1137,29 +1152,59 @@
         // Unduh QR Code yang sedang ditampilkan, nama file mengikuti isinya
         // (Nama PC untuk kategori PC, atau baris pertama Spesifikasi untuk selain PC)
         // Label (nama PC / nama barang) ikut digambar di bawah QR pada gambar unduhan.
-        function downloadQrCode() {
+        // Memecah teks menjadi beberapa baris agar pas dengan lebar maksimal (word-wrap, tanpa memepetkan huruf)
+        function pecahTeksJadiBaris(ctx, teks, lebarMaksimal) {
+            const kata = teks.split(' ');
+            const baris = [];
+            let barisSaatIni = '';
+
+            kata.forEach(k => {
+                const percobaan = barisSaatIni ? `${barisSaatIni} ${k}` : k;
+                if (ctx.measureText(percobaan).width > lebarMaksimal && barisSaatIni) {
+                    baris.push(barisSaatIni);
+                    barisSaatIni = k;
+                } else {
+                    barisSaatIni = percobaan;
+                }
+            });
+            if (barisSaatIni) baris.push(barisSaatIni);
+            return baris;
+        }
+
+        async function downloadQrCode() {
             const canvas = document.getElementById('qrCanvas');
             if (!canvas) return;
 
-            const label = document.getElementById('qrItemTitle').innerText || qrTextAktif;
-            const padding = 16, fontSize = 18, labelHeight = fontSize + padding;
+            const label = labelQrAktif || document.getElementById('qrItemTitle').innerText || qrTextAktif;
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
+            const padding = 20, fontSize = 16, lineHeight = fontSize + 6;
+            const lebarCanvas = Math.max(canvas.width, 240);
+
+            const ctxUkur = document.createElement('canvas').getContext('2d');
+            ctxUkur.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
+            const barisLabel = pecahTeksJadiBaris(ctxUkur, label, lebarCanvas - padding);
+
+            const labelHeight = barisLabel.length * lineHeight + padding;
             const outCanvas = document.createElement('canvas');
-            outCanvas.width = canvas.width;
+            outCanvas.width = lebarCanvas;
             outCanvas.height = canvas.height + labelHeight;
 
             const ctx = outCanvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-            ctx.drawImage(canvas, 0, 0);
+            ctx.drawImage(canvas, (lebarCanvas - canvas.width) / 2, 0);
 
             ctx.fillStyle = '#1e293b';
             ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(label, outCanvas.width / 2, canvas.height + labelHeight / 2, outCanvas.width - padding);
+            barisLabel.forEach((baris, i) => {
+                const y = canvas.height + padding / 2 + i * lineHeight + lineHeight / 2;
+                ctx.fillText(baris, outCanvas.width / 2, y);
+            });
 
-            const namaFile = `qr-${buatNamaFileAman(qrTextAktif)}.png`;
+            const namaFile = `qr-${buatNamaFileAman(label)}.png`;
             const link = document.createElement('a');
             link.download = namaFile;
             link.href = outCanvas.toDataURL('image/png');
