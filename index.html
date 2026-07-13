@@ -220,6 +220,9 @@
                     <button onclick="openScanModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
                         <i class="fa-solid fa-camera"></i> Scan QR Barang
                     </button>
+                    <button onclick="openKegiatanModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
+                        <i class="fa-solid fa-calendar-plus"></i> Tambah Kegiatan
+                    </button>
                     <button onclick="exportJSON()" class="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-xs">
                         <i class="fa-solid fa-file-export text-slate-400"></i> Backup
                     </button>
@@ -265,6 +268,31 @@
                 <h4 class="font-bold text-slate-700">Tidak ada perlengkapan ditemukan</h4>
                 <p class="text-xs text-slate-400 max-w-sm">Mulai isi daftar perlengkapan lab Anda dengan menekan tombol "Tambah Perlengkapan" di atas.</p>
             </div>
+        </div>
+
+        <!-- Kegiatan List Table Container -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-amber-500"></i> Daftar Kegiatan
+                </h3>
+                <span class="text-xs text-slate-400 font-medium" id="kegiatanCount">0 kegiatan</span>
+            </div>
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-xs tracking-wider font-semibold">
+                            <th class="py-4 px-6">Kegiatan</th>
+                            <th class="py-4 px-6">Ruangan</th>
+                            <th class="py-4 px-6">Tanggal</th>
+                            <th class="py-4 px-6">Jam</th>
+                            <th class="py-4 px-6 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kegiatanTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                </table>
+            </div>
+            <div id="kegiatanEmptyState" class="hidden p-12 text-center text-xs text-slate-400">Belum ada kegiatan tercatat.</div>
         </div>
     </main>
 
@@ -499,6 +527,46 @@
         </div>
     </div>
 
+    <!-- KEGIATAN MODAL -->
+    <div id="kegiatanModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md transform scale-95 transition-transform duration-300">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 id="kegiatanModalTitle" class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus text-amber-500"></i> Tambah Kegiatan
+                </h3>
+                <button onclick="closeKegiatanModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="kegiatanId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Nama Kegiatan</label>
+                    <input type="text" id="kegiatanNama" placeholder="Contoh: Perbaikan Komputer" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Ruangan</label>
+                    <input type="text" id="kegiatanRuang" list="kegiatanRuangList" placeholder="Contoh: Lab Komputer 1" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+                    <datalist id="kegiatanRuangList"></datalist>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Tanggal</label>
+                        <input type="date" id="kegiatanTanggal" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Jam</label>
+                        <input type="time" id="kegiatanJam" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
+                <button type="button" onclick="closeKegiatanModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-medium transition-colors">Batal</button>
+                <button type="button" onclick="simpanKegiatan()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">Simpan</button>
+            </div>
+        </div>
+    </div>
+
     <!-- CATEGORY MANAGEMENT MODAL -->
     <div id="categoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
@@ -565,6 +633,7 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZHZkZmVia3psd2todnh3c2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcyMTA4OTksImV4cCI6MjA1Mjc4Njg5OX0.Z9XKmX49vu0kZwn6YMom8QeLNNdKQMXCIkxcIoHKQFs";
         const TABEL_BARANG = "barang";
         const TABEL_KATEGORI = "kategori";
+        const TABEL_KEGIATAN = "kegiatan";
 
         const headerDasar = {
             "apikey": SUPABASE_KEY,
@@ -608,6 +677,139 @@
         // Data utama sekarang disinkronkan langsung dengan Supabase (bukan localStorage lagi)
         let categoriesList = [];
         let inventoryItems = [];
+        let kegiatanList = [];
+
+        async function muatKegiatan() {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/${TABEL_KEGIATAN}?select=*&order=tanggal.asc,jam.asc`, { headers: headerDasar });
+                if (!res.ok) throw new Error('Gagal memuat kegiatan');
+                kegiatanList = await res.json();
+                renderKegiatan();
+            } catch (kesalahan) {
+                console.error(kesalahan);
+            }
+        }
+
+        function renderKegiatan() {
+            const tbody = document.getElementById('kegiatanTableBody');
+            const empty = document.getElementById('kegiatanEmptyState');
+            document.getElementById('kegiatanCount').textContent = `${kegiatanList.length} kegiatan`;
+            if (kegiatanList.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            tbody.innerHTML = kegiatanList.map(k => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-3 px-6 font-medium text-slate-700">${k.nama}</td>
+                    <td class="py-3 px-6 text-slate-500">${k.ruangan}</td>
+                    <td class="py-3 px-6 text-slate-500">${formatTanggalIndo(k.tanggal)}</td>
+                    <td class="py-3 px-6 text-slate-500 font-mono">${k.jam ? k.jam.slice(0,5) : '-'}</td>
+                    <td class="py-3 px-6 text-right">
+                        <button onclick="editKegiatan('${k.id}')" class="text-amber-500 hover:text-amber-700 p-1.5 rounded-lg hover:bg-amber-50 transition-colors mr-1"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="hapusKegiatan('${k.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function formatTanggalIndo(tgl) {
+            if (!tgl) return '-';
+            const d = new Date(tgl + 'T00:00:00');
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function openKegiatanModal() {
+            document.getElementById('kegiatanModalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus text-amber-500"></i> Tambah Kegiatan';
+            document.getElementById('kegiatanId').value = '';
+            document.getElementById('kegiatanNama').value = '';
+            document.getElementById('kegiatanRuang').value = '';
+            document.getElementById('kegiatanTanggal').value = new Date().toISOString().slice(0,10);
+            document.getElementById('kegiatanJam').value = '';
+            const daftarRuang = document.getElementById('kegiatanRuangList');
+            const ruangUnik = [...new Set(inventoryItems.map(i => i.room).filter(Boolean))];
+            daftarRuang.innerHTML = ruangUnik.map(r => `<option value="${r}"></option>`).join('');
+            const modal = document.getElementById('kegiatanModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeKegiatanModal() {
+            const modal = document.getElementById('kegiatanModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function editKegiatan(id) {
+            const k = kegiatanList.find(x => x.id === id);
+            if (!k) return;
+            document.getElementById('kegiatanModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-500"></i> Ubah Kegiatan';
+            document.getElementById('kegiatanId').value = k.id;
+            document.getElementById('kegiatanNama').value = k.nama;
+            document.getElementById('kegiatanRuang').value = k.ruangan;
+            document.getElementById('kegiatanTanggal').value = k.tanggal;
+            document.getElementById('kegiatanJam').value = k.jam ? k.jam.slice(0,5) : '';
+            const modal = document.getElementById('kegiatanModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+            }, 10);
+        }
+
+        async function simpanKegiatan() {
+            const id = document.getElementById('kegiatanId').value;
+            const nama = document.getElementById('kegiatanNama').value.trim();
+            const ruangan = document.getElementById('kegiatanRuang').value.trim();
+            const tanggal = document.getElementById('kegiatanTanggal').value;
+            const jam = document.getElementById('kegiatanJam').value;
+            if (!nama || !ruangan || !tanggal || !jam) {
+                showToast("Lengkapi semua data kegiatan.", "danger");
+                return;
+            }
+            const payload = { nama, ruangan, tanggal, jam };
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`${SUPABASE_URL}/${TABEL_KEGIATAN}?id=eq.${id}`, {
+                        method: 'PATCH',
+                        headers: { ...headerDasar, "Prefer": "return=representation" },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    res = await fetch(`${SUPABASE_URL}/${TABEL_KEGIATAN}`, {
+                        method: 'POST',
+                        headers: { ...headerDasar, "Prefer": "return=representation" },
+                        body: JSON.stringify(payload)
+                    });
+                }
+                if (!res.ok) throw new Error('Gagal menyimpan kegiatan');
+                await muatKegiatan();
+                closeKegiatanModal();
+                showToast("Kegiatan berhasil disimpan.", "success");
+            } catch (kesalahan) {
+                showToast("Gagal menyimpan kegiatan ke Supabase.", "danger");
+                console.error(kesalahan);
+            }
+        }
+
+        async function hapusKegiatan(id) {
+            if (!confirm('Hapus kegiatan ini?')) return;
+            try {
+                const res = await fetch(`${SUPABASE_URL}/${TABEL_KEGIATAN}?id=eq.${id}`, { method: 'DELETE', headers: headerDasar });
+                if (!res.ok) throw new Error('Gagal menghapus kegiatan');
+                await muatKegiatan();
+                showToast("Kegiatan berhasil dihapus.", "info");
+            } catch (kesalahan) {
+                showToast("Gagal menghapus kegiatan.", "danger");
+                console.error(kesalahan);
+            }
+        }
 
         // Mengambil seluruh data (barang & kategori) dari Supabase
         async function muatSemuaData() {
@@ -1893,6 +2095,7 @@
         // Window Load Initialization
         window.onload = function() {
             muatSemuaData();
+            muatKegiatan();
         };
     </script>
 </body>
