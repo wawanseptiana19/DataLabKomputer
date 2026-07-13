@@ -67,17 +67,20 @@
     <!-- Header Section -->
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-inner flex items-center justify-center">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Buka menu" class="p-2 rounded-lg hover:bg-indigo-800 transition-colors shrink-0">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-inner flex items-center justify-center shrink-0">
                     <i class="fa-solid fa-laptop-code text-xl text-white"></i>
                 </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Inventaris Lab Komputer</h1>
-                    <p class="text-xs text-indigo-200">Manajemen Aset & Perlengkapan Sekolah</p>
+                <div class="min-w-0">
+                    <h1 class="font-bold text-base sm:text-lg leading-tight truncate">Inventaris Lab Komputer</h1>
+                    <p class="text-xs text-indigo-200 hidden sm:block truncate">Manajemen Aset & Perlengkapan Sekolah</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     Sistem Aktif
                 </span>
@@ -85,8 +88,32 @@
         </div>
     </header>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- Sidebar Drawer -->
+    <aside id="sidebarDrawer" class="fixed top-0 left-0 h-full w-full xs:w-80 sm:w-96 max-w-full bg-white z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="flex items-center justify-between px-5 h-16 border-b border-slate-100 bg-indigo-900 text-white shrink-0">
+            <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-bars"></i> Menu</h2>
+            <button onclick="closeSidebar()" aria-label="Tutup menu" class="p-2 rounded-lg hover:bg-indigo-800 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <nav class="flex-grow overflow-y-auto py-2">
+            <button id="navInventaris" onclick="switchPage('inventaris')" class="w-full px-5 py-3.5 flex items-center gap-3 text-sm font-semibold transition-colors border-l-4 border-transparent hover:bg-slate-50">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Inventaris
+            </button>
+            <button id="navKegiatan" onclick="switchPage('kegiatan')" class="w-full px-5 py-3.5 flex items-center gap-3 text-sm font-semibold transition-colors border-l-4 border-transparent hover:bg-slate-50">
+                <i class="fa-solid fa-calendar-days w-5 text-center"></i> Daftar Kegiatan
+            </button>
+        </nav>
+    </aside>
+
     <!-- Main Content -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <div id="pageInventaris" class="space-y-8">
         
         <!-- Dashboard Statistics Cards (5 items in a beautiful responsive grid) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -220,9 +247,6 @@
                     <button onclick="openScanModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
                         <i class="fa-solid fa-camera"></i> Scan QR Barang
                     </button>
-                    <button onclick="openKegiatanModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-all text-xs">
-                        <i class="fa-solid fa-calendar-plus"></i> Tambah Kegiatan
-                    </button>
                     <button onclick="exportJSON()" class="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-xs">
                         <i class="fa-solid fa-file-export text-slate-400"></i> Backup
                     </button>
@@ -270,30 +294,46 @@
             </div>
         </div>
 
-        <!-- Kegiatan List Table Container -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days text-amber-500"></i> Daftar Kegiatan
-                </h3>
-                <span class="text-xs text-slate-400 font-medium" id="kegiatanCount">0 kegiatan</span>
-            </div>
-            <div class="overflow-x-auto w-full">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-xs tracking-wider font-semibold">
-                            <th class="py-4 px-6">Kegiatan</th>
-                            <th class="py-4 px-6">Ruangan</th>
-                            <th class="py-4 px-6">Tanggal</th>
-                            <th class="py-4 px-6">Jam</th>
-                            <th class="py-4 px-6 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="kegiatanTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
-                </table>
-            </div>
-            <div id="kegiatanEmptyState" class="hidden p-12 text-center text-xs text-slate-400">Belum ada kegiatan tercatat.</div>
         </div>
+
+        <div id="pageKegiatan" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-days text-amber-500"></i> Daftar Kegiatan
+                    </h3>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400 font-medium" id="kegiatanCount">0 kegiatan</span>
+                        <button onclick="openKegiatanModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-medium px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all text-xs shrink-0">
+                            <i class="fa-solid fa-calendar-plus"></i> Tambah Kegiatan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-xs tracking-wider font-semibold">
+                                <th class="py-4 px-6">Kegiatan</th>
+                                <th class="py-4 px-6">Ruangan</th>
+                                <th class="py-4 px-6">Tanggal</th>
+                                <th class="py-4 px-6">Jam</th>
+                                <th class="py-4 px-6 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kegiatanTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="kegiatanEmptyState" class="hidden p-12 text-center flex flex-col items-center justify-center space-y-3">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700">Belum ada kegiatan tercatat</h4>
+                    <p class="text-xs text-slate-400 max-w-sm">Mulai catat kegiatan lab dengan menekan tombol "Tambah Kegiatan" di atas.</p>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer -->
@@ -2091,6 +2131,47 @@
                 if (modalKategori && !modalKategori.classList.contains('hidden')) renderCategoryList();
             })
             .subscribe();
+
+        function toggleSidebar() {
+            const drawer = document.getElementById('sidebarDrawer');
+            drawer.classList.contains('-translate-x-full') ? openSidebar() : closeSidebar();
+        }
+
+        function openSidebar() {
+            const drawer = document.getElementById('sidebarDrawer');
+            const overlay = document.getElementById('sidebarOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.classList.remove('-translate-x-full');
+            }, 10);
+        }
+
+        function closeSidebar() {
+            const drawer = document.getElementById('sidebarDrawer');
+            const overlay = document.getElementById('sidebarOverlay');
+            overlay.classList.add('opacity-0');
+            drawer.classList.add('-translate-x-full');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        function switchPage(page) {
+            const isInventaris = page === 'inventaris';
+            document.getElementById('pageInventaris').classList.toggle('hidden', !isInventaris);
+            document.getElementById('pageKegiatan').classList.toggle('hidden', isInventaris);
+            document.getElementById('navInventaris').classList.toggle('bg-indigo-50', isInventaris);
+            document.getElementById('navInventaris').classList.toggle('text-indigo-600', isInventaris);
+            document.getElementById('navInventaris').classList.toggle('border-indigo-600', isInventaris);
+            document.getElementById('navInventaris').classList.toggle('border-transparent', !isInventaris);
+            document.getElementById('navInventaris').classList.toggle('text-slate-500', !isInventaris);
+            document.getElementById('navKegiatan').classList.toggle('bg-amber-50', !isInventaris);
+            document.getElementById('navKegiatan').classList.toggle('text-amber-600', !isInventaris);
+            document.getElementById('navKegiatan').classList.toggle('border-amber-500', !isInventaris);
+            document.getElementById('navKegiatan').classList.toggle('border-transparent', isInventaris);
+            document.getElementById('navKegiatan').classList.toggle('text-slate-500', isInventaris);
+            closeSidebar();
+        }
+        switchPage('inventaris');
 
         // Window Load Initialization
         window.onload = function() {
