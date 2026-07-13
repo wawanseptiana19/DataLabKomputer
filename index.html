@@ -1136,14 +1136,33 @@
 
         // Unduh QR Code yang sedang ditampilkan, nama file mengikuti isinya
         // (Nama PC untuk kategori PC, atau baris pertama Spesifikasi untuk selain PC)
+        // Label (nama PC / nama barang) ikut digambar di bawah QR pada gambar unduhan.
         function downloadQrCode() {
             const canvas = document.getElementById('qrCanvas');
             if (!canvas) return;
 
+            const label = document.getElementById('qrItemTitle').innerText || qrTextAktif;
+            const padding = 16, fontSize = 18, labelHeight = fontSize + padding;
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = canvas.width;
+            outCanvas.height = canvas.height + labelHeight;
+
+            const ctx = outCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, outCanvas.width / 2, canvas.height + labelHeight / 2, outCanvas.width - padding);
+
             const namaFile = `qr-${buatNamaFileAman(qrTextAktif)}.png`;
             const link = document.createElement('a');
             link.download = namaFile;
-            link.href = canvas.toDataURL('image/png');
+            link.href = outCanvas.toDataURL('image/png');
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
