@@ -1083,9 +1083,6 @@
         }
 
         // Animasi hitung angka (count-up/count-down) untuk kartu statistik.
-        // Setiap elemen menyimpan frame animasinya sendiri (el._countAnimFrame)
-        // supaya jika nilai berubah lagi sebelum animasi selesai, animasi lama
-        // langsung dibatalkan dan diganti dengan yang baru (tidak tumpang tindih).
         function animateCountTo(elementId, newValue) {
             const el = document.getElementById(elementId);
             if (!el) return;
@@ -1105,7 +1102,6 @@
             const duration = 600; // ms
             const startTime = performance.now();
 
-            // Efek "pop" kecil setiap kali nilainya berubah
             el.classList.add('scale-110');
             setTimeout(() => el.classList.remove('scale-110'), duration);
 
@@ -1127,16 +1123,12 @@
         }
 
         // Update Statistics
-        // Kartu statistik (Total Barang & sebaran Kondisi) mengikuti filter
-        // Ruangan dan Kategori yang sedang dipilih di Panel Kontrol & Filter.
         function updateStats() {
             const filterRoomEl = document.getElementById('filterRoom');
             const filterCategoryEl = document.getElementById('filterCategory');
             const selectedRoom = filterRoomEl ? filterRoomEl.value : 'Semua';
             const selectedCategory = filterCategoryEl ? filterCategoryEl.value : 'Semua';
 
-            // Hanya disaring berdasarkan Ruangan & Kategori (bukan Kondisi),
-            // karena kartu ini sendiri menampilkan sebaran per Kondisi.
             const statsItems = inventoryItems.filter(item => {
                 const matchesRoom = selectedRoom === 'Semua' || item.room === selectedRoom;
                 const matchesCategory = selectedCategory === 'Semua' || item.category === selectedCategory;
@@ -1160,7 +1152,6 @@
 
         // Render Categories and Room Filter/Suggestions Dynamically
         function refreshDynamicDropdowns() {
-            // Re-render Filter Category Select Options
             const filterCategorySelect = document.getElementById('filterCategory');
             const currentFilterCategory = filterCategorySelect.value;
             
@@ -1177,7 +1168,6 @@
                 filterCategorySelect.value = "Semua";
             }
 
-            // Re-render Modal Item Category Select Options
             const modalCategorySelect = document.getElementById('itemCategory');
             const currentModalCategory = modalCategorySelect.value;
 
@@ -1192,12 +1182,10 @@
                 modalCategorySelect.value = currentModalCategory;
             }
 
-            // Room dynamic updates
             const roomFilter = document.getElementById('filterRoom');
             const datalist = document.getElementById('roomSuggestions');
             const currentSelectedRoom = roomFilter.value;
 
-            // Get unique rooms
             const rooms = [...new Set(inventoryItems.map(item => item.room))].filter(Boolean).sort();
             
             roomFilter.innerHTML = '<option value="Semua">Semua Ruangan</option>';
@@ -1262,12 +1250,10 @@
 
             activeDetailItemId = id; // Set active ID untuk QR Code & Copy
 
-            // Load values to details modal
             document.getElementById('detailRoom').innerText = item.room;
             document.getElementById('detailCategory').innerText = item.category;
             document.getElementById('detailQuantity').innerText = `${item.quantity} Unit`;
             
-            // Set condition badge inside popup
             const badgeContainer = document.getElementById('detailConditionBadge');
             if (item.condition === 'Baik') {
                 badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Baik</span>`;
@@ -1279,7 +1265,6 @@
                 badgeContainer.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rusak Berat</span>`;
             }
 
-            // Handle PC identity container
             const pcContainer = document.getElementById('detailPcNameContainer');
             if (item.category === 'PC' && item.pcName) {
                 document.getElementById('detailPcName').innerText = item.pcName;
@@ -1288,10 +1273,8 @@
                 pcContainer.classList.add('hidden');
             }
 
-            // Specs text
             document.getElementById('detailSpecsContent').innerText = item.name;
 
-            // Hook up quick edit action
             const editBtn = document.getElementById('detailEditBtn');
             editBtn.onclick = function() {
                 closeDetailModal();
@@ -1300,7 +1283,6 @@
                 }, 200);
             };
 
-            // Animate popup open
             const modal = document.getElementById('detailModal');
             modal.classList.remove('hidden');
             setTimeout(() => {
@@ -1318,7 +1300,6 @@
             }, 300);
         }
 
-        // Copy specs to clipboard with fallback compatibility (as requested)
         function copyDetailSpecs() {
             const textToCopy = document.getElementById('detailSpecsContent').innerText;
             const tempEl = document.createElement('textarea');
@@ -1330,7 +1311,6 @@
             showToast("Detail spesifikasi berhasil disalin!", "success");
         }
 
-        // Tampilkan QR Code untuk Item yang Sedang Dilihat
         function showQrCode() {
             if (!activeDetailItemId) return;
             const item = inventoryItems.find(item => item.id === activeDetailItemId);
@@ -1338,9 +1318,6 @@
 
             const canvas = document.getElementById('qrCanvas');
             
-            // Format isi teks pemindaian QR Code:
-            // - Kategori PC     -> isi QR hanya Nama PC / ID PC
-            // - Selain PC       -> isi QR hanya Nama Barang / Spesifikasi Lengkap
             let qrText = '';
             let labelTampil = '';
             if (item.category === 'PC' && item.pcName) {
@@ -1351,18 +1328,16 @@
                 labelTampil = item.name.split('\n')[0];
             }
             document.getElementById('qrItemTitle').innerText = labelTampil;
-            qrTextAktif = qrText; // simpan agar bisa dipakai saat mengunduh (isi QR & nama file)
-            labelQrAktif = labelTampil; // simpan label tampilan untuk digambar di bawah QR saat diunduh
+            qrTextAktif = qrText;
+            labelQrAktif = labelTampil;
 
-            // Membangun QR Code menggunakan QRious Library
             new QRious({
                 element: canvas,
                 value: qrText,
                 size: 200,
-                level: 'M' // Medium Error Correction
+                level: 'M'
             });
 
-            // Animasi buka QR Modal
             const qrModal = document.getElementById('qrModal');
             qrModal.classList.remove('hidden');
             setTimeout(() => {
@@ -1380,7 +1355,6 @@
             }, 300);
         }
 
-        // Mengubah teks bebas menjadi nama file yang aman (tanpa karakter aneh)
         function buatNamaFileAman(teks) {
             return (teks || 'qr-barang')
                 .split('\n')[0]
@@ -1391,10 +1365,6 @@
                 .slice(0, 60) || 'qr-barang';
         }
 
-        // Unduh QR Code yang sedang ditampilkan, nama file mengikuti isinya
-        // (Nama PC untuk kategori PC, atau baris pertama Spesifikasi untuk selain PC)
-        // Label (nama PC / nama barang) ikut digambar di bawah QR pada gambar unduhan.
-        // Memecah teks menjadi beberapa baris agar pas dengan lebar maksimal (word-wrap, tanpa memepetkan huruf)
         function pecahTeksJadiBaris(ctx, teks, lebarMaksimal) {
             const kata = teks.split(' ');
             const baris = [];
@@ -1499,14 +1469,12 @@
             }
         }
 
-        // Dipanggil otomatis oleh library saat QR Code berhasil terbaca kamera
         function onScanBerhasil(teksHasilScan) {
             if (sedangMemprosesScan) return;
             sedangMemprosesScan = true;
 
             const teks = (teksHasilScan || '').trim();
 
-            // Cocokkan dengan Nama PC (kategori PC) atau Nama Barang/Spesifikasi (selain PC)
             const barangDitemukan = inventoryItems.find(item =>
                 (item.pcName && item.pcName.trim() === teks) || item.name.trim() === teks
             );
@@ -1515,7 +1483,6 @@
                 const namaTampil = barangDitemukan.pcName || barangDitemukan.name.split('\n')[0];
                 closeScanModal();
 
-                // Tampilkan barangnya di tabel & buka detail lengkapnya
                 document.getElementById('searchInput').value = namaTampil;
                 filterData();
                 setTimeout(() => openDetailModal(barangDitemukan.id), 300);
@@ -1525,7 +1492,6 @@
                 showToast('Barang tidak ditemukan dari QR ini.', 'danger');
             }
 
-            // Jeda sebentar agar tidak memproses kode QR yang sama berkali-kali
             setTimeout(() => { sedangMemprosesScan = false; }, 2000);
         }
 
@@ -1549,7 +1515,6 @@
             items.forEach(item => {
                 const iconClass = categoryIcons[item.category] || categoryIcons['Lainnya'];
                 
-                // Condition Badge
                 let conditionBadge = '';
                 if (item.condition === 'Baik') {
                     conditionBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Baik</span>`;
@@ -1576,7 +1541,6 @@
                     collapsedPreview = hasMoreLines ? nameLines[1] : '';
                 }
 
-                // Cards click wrapper
                 const nameDisplayHtml = `
                     <div class="flex flex-col gap-1 cursor-pointer group" onclick="openDetailModal('${item.id}')" title="Klik untuk membuka detail spesifikasi lengkap">
                         <div class="flex flex-wrap items-center gap-2">
@@ -1651,17 +1615,15 @@
                 return;
             }
 
-            // Clean weird system whitespaces & non-breaking spaces
             text = text.replace(/\u00a0/g, ' ');
 
             let lines = text.split(/\r?\n/);
-            let pasangan = []; // [key, value] apa adanya, TIDAK ada baris yang dibuang
+            let pasangan = [];
             let deviceName = '';
 
             lines.forEach(line => {
                 if (!line.trim()) return;
 
-                // Pisahkan "Nama Field" dan "Isi" — dukung Tab, ":" , atau 2+ spasi
                 let key = '', value = '';
 
                 if (line.includes('\t')) {
@@ -1679,13 +1641,11 @@
                 }
 
                 if (key && value) {
-                    // Nama field TETAP seperti aslinya (huruf besar/kecil tidak diubah)
                     pasangan.push([key, value]);
                     if (/device name|nama perangkat|nama komputer/i.test(key)) {
                         deviceName = value;
                     }
                 } else {
-                    // Baris yang tidak berbentuk "Field: Isi" tetap disimpan apa adanya
                     pasangan.push([line.trim(), '']);
                 }
             });
@@ -1695,16 +1655,14 @@
                 return;
             }
 
-            // Ratakan tanda titik dua berdasarkan nama field terpanjang
             const panjangKunciMaksimal = Math.max(...pasangan.map(p => p[0].length));
             const barisHasil = pasangan.map(p => {
-                if (!p[1]) return p[0]; // baris tanpa "isi" ditampilkan apa adanya, tanpa titik dua
+                if (!p[1]) return p[0];
                 return p[0].padEnd(panjangKunciMaksimal + 1) + ': ' + p[1];
             });
 
             textarea.value = barisHasil.join('\n');
 
-            // Kalau ketemu "Device name", otomatis set kategori PC & isi Nama PC
             if (deviceName) {
                 document.getElementById('itemCategory').value = 'PC';
                 togglePcNameField();
@@ -1765,7 +1723,6 @@
 
             try {
                 if (id) {
-                    // Update ke Supabase
                     const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=eq.${id}`, {
                         method: 'PATCH',
                         headers: { ...headerDasar, "Prefer": "return=representation" },
@@ -1778,7 +1735,6 @@
                     if (index !== -1) inventoryItems[index] = dariSupabaseBarang(hasil[0]);
                     showToast("Perlengkapan berhasil diperbarui!");
                 } else {
-                    // Buat baru di Supabase
                     const respon = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}`, {
                         method: 'POST',
                         headers: { ...headerDasar, "Prefer": "return=representation" },
@@ -1836,8 +1792,7 @@
 
             const payload = keSupabaseBarang({
                 ...item,
-                name: `${item.name} (Salinan)`,
-                pcName: item.pcName ? `${item.pcName}-SALINAN` : undefined
+                pcName: item.pcName || undefined
             });
 
             try {
@@ -1873,7 +1828,6 @@
             }, 10);
         }
 
-        // Close Category Modal
         function closeCategoryModal() {
             const modal = document.getElementById('categoryModal');
             modal.classList.add('opacity-0');
@@ -1883,7 +1837,6 @@
             }, 300);
         }
 
-        // Render Category List
         function renderCategoryList() {
             const container = document.getElementById('categoryListContainer');
             container.innerHTML = '';
@@ -2064,11 +2017,9 @@
 
                     showToast("Mengimpor data ke Supabase...", "info");
 
-                    // Hapus seluruh data lama di Supabase (barang & kategori)
                     await fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=not.is.null`, { method: 'DELETE', headers: headerDasar });
                     await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}?id=not.is.null`, { method: 'DELETE', headers: headerDasar });
 
-                    // Masukkan kategori baru
                     const resKategori = await fetch(`${SUPABASE_URL}/${TABEL_KATEGORI}`, {
                         method: 'POST',
                         headers: headerDasar,
@@ -2076,7 +2027,6 @@
                     });
                     if (!resKategori.ok) throw new Error('Gagal memulihkan kategori');
 
-                    // Masukkan barang baru
                     if (items.length > 0) {
                         const resBarang = await fetch(`${SUPABASE_URL}/${TABEL_BARANG}`, {
                             method: 'POST',
@@ -2094,12 +2044,10 @@
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset file input
+            event.target.value = '';
         }
 
         // ===== Mendengarkan siaran langsung (Realtime) dari Supabase =====
-        // Supaya perubahan data dari perangkat/pengguna lain langsung
-        // muncul tanpa perlu refresh halaman.
         supabaseClient
             .channel('realtime-inventaris')
             .on('postgres_changes', { event: '*', schema: 'public', table: TABEL_BARANG }, (kabar) => {
