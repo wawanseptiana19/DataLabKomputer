@@ -785,7 +785,7 @@
 
             sortablesKegiatan.forEach(s => s.destroy());
             sortablesKegiatan = [...container.querySelectorAll('.kegiatan-grup')].map(el =>
-                new Sortable(el, { handle: '.drag-handle', animation: 150, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanKegiatan })
+                new Sortable(el, { animation: 150, delay: 350, delayOnTouchOnly: false, touchStartThreshold: 10, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanKegiatan })
             );
         }
 
@@ -1652,23 +1652,30 @@
                 tbody.appendChild(tr);
             });
 
-            if (sortableBarang) sortableBarang.destroy();
-            if (items.length === inventoryItems.length) {
-                sortableBarang = new Sortable(tbody, { handle: '.drag-handle', animation: 150, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanBarang });
+            if (!sortableBarang) {
+                sortableBarang = new Sortable(tbody, { animation: 150, delay: 350, delayOnTouchOnly: false, touchStartThreshold: 10, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanBarang });
             }
         }
 
         let sortableBarang = null;
+        let sedangSimpanBarang = false;
         async function simpanUrutanBarang() {
-            const ids = [...document.getElementById('inventoryTableBody').children].map(tr => tr.dataset.id);
-            inventoryItems.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+            sedangSimpanBarang = true;
+            const idsVisible = [...document.getElementById('inventoryTableBody').children].map(tr => tr.dataset.id);
+            const slots = [];
+            inventoryItems.forEach((it, idx) => { if (idsVisible.includes(it.id)) slots.push(idx); });
+            const itemsBaru = idsVisible.map(id => inventoryItems.find(it => it.id === id));
+            slots.forEach((slot, i) => { inventoryItems[slot] = itemsBaru[i]; });
+
             try {
-                await Promise.all(ids.map((id, idx) => fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=eq.${id}`, {
+                await Promise.all(inventoryItems.map((it, idx) => fetch(`${SUPABASE_URL}/${TABEL_BARANG}?id=eq.${it.id}`, {
                     method: 'PATCH', headers: headerDasar, body: JSON.stringify({ urutan: idx })
                 })));
             } catch (kesalahan) {
                 showToast("Gagal menyimpan urutan barang.", "danger");
                 console.error(kesalahan);
+            } finally {
+                sedangSimpanBarang = false;
             }
         }
 
@@ -1950,12 +1957,15 @@
                 container.appendChild(itemDiv);
             });
 
-            if (sortableKategori) sortableKategori.destroy();
-            sortableKategori = new Sortable(container, { handle: '.drag-handle', animation: 150, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanKategori });
+            if (!sortableKategori) {
+                sortableKategori = new Sortable(container, { animation: 150, delay: 350, delayOnTouchOnly: false, touchStartThreshold: 10, forceFallback: true, ghostClass: 'opacity-40', onEnd: simpanUrutanKategori });
+            }
         }
 
         let sortableKategori = null;
+        let sedangSimpanKategori = false;
         async function simpanUrutanKategori() {
+            sedangSimpanKategori = true;
             const names = [...document.getElementById('categoryListContainer').children].map(el => el.dataset.name);
             categoriesList = names.slice();
             try {
@@ -1967,6 +1977,8 @@
             } catch (kesalahan) {
                 showToast("Gagal menyimpan urutan kategori.", "danger");
                 console.error(kesalahan);
+            } finally {
+                sedangSimpanKategori = false;
             }
         }
 
@@ -2164,6 +2176,7 @@
                 } else if (kabar.eventType === 'DELETE') {
                     inventoryItems = inventoryItems.filter(it => it.id !== kabar.old.id);
                 }
+                if (sedangSimpanBarang) return;
                 updateStats();
                 updateCategoryChart();
                 updateConditionChart();
@@ -2176,6 +2189,7 @@
                 } else if (kabar.eventType === 'DELETE') {
                     categoriesList = categoriesList.filter(c => c !== kabar.old.name);
                 }
+                if (sedangSimpanKategori) return;
                 refreshDynamicDropdowns();
                 updateCategoryChart();
                 const modalKategori = document.getElementById('categoryModal');
