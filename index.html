@@ -378,13 +378,21 @@
                 </div>
 
                 <!-- PC Identity Box (Conditional) -->
-                <div id="detailPcNameContainer" class="hidden bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between">
-                    <div class="space-y-0.5">
-                        <span class="text-[10px] text-indigo-500 uppercase font-bold tracking-wider block">ID / Nama Unit PC</span>
-                        <span id="detailPcName" class="text-sm font-bold font-mono text-indigo-900"></span>
+                <div id="detailPcNameContainer" class="hidden grid grid-cols-2 gap-3">
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <span class="text-[10px] text-indigo-500 uppercase font-bold tracking-wider block">Meja</span>
+                            <span id="detailDesk" class="text-sm font-bold font-mono text-indigo-900"></span>
+                        </div>
                     </div>
-                    <div class="bg-indigo-600/10 text-indigo-600 p-2.5 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-desktop text-lg"></i>
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <span class="text-[10px] text-indigo-500 uppercase font-bold tracking-wider block">ID / Nama Unit PC</span>
+                            <span id="detailPcName" class="text-sm font-bold font-mono text-indigo-900"></span>
+                        </div>
+                        <div class="bg-indigo-600/10 text-indigo-600 p-2.5 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-desktop text-lg"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -511,10 +519,16 @@
                     </div>
                 </div>
 
-                <!-- Nama PC / ID Unit (Hanya muncul dinamis jika Kategori = PC) -->
-                <div id="pcNameWrapper" class="hidden transition-all duration-300">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nama PC / ID PC <span class="text-rose-500">*</span></label>
-                    <input type="text" id="itemPcName" placeholder="Misal: PC-LAB1-01" class="w-full px-3 py-2 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono bg-indigo-50/30">
+                <!-- Nama PC / ID Unit + Meja (Hanya muncul dinamis jika Kategori = PC) -->
+                <div id="pcNameWrapper" class="hidden transition-all duration-300 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Meja <span class="text-rose-500">*</span></label>
+                        <input type="text" id="itemDesk" placeholder="Misal: Meja 1" class="w-full px-3 py-2 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono bg-indigo-50/30">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nama PC / ID PC <span class="text-rose-500">*</span></label>
+                        <input type="text" id="itemPcName" placeholder="Misal: PC-LAB1-01" class="w-full px-3 py-2 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono bg-indigo-50/30">
+                    </div>
                 </div>
 
                 <!-- Nama Barang / Spesifikasi (Notepad Style) -->
@@ -695,7 +709,8 @@
                 category: row.category,
                 quantity: row.quantity,
                 condition: row.condition,
-                pcName: row.pc_name || undefined
+                pcName: row.pc_name || undefined,
+                desk: row.desk || undefined
             };
         }
 
@@ -707,7 +722,8 @@
                 category: item.category,
                 quantity: item.quantity,
                 condition: item.condition,
-                pc_name: item.pcName || null
+                pc_name: item.pcName || null,
+                desk: item.desk || null
             };
         }
 
@@ -1327,6 +1343,7 @@
             const pcContainer = document.getElementById('detailPcNameContainer');
             if (item.category === 'PC' && item.pcName) {
                 document.getElementById('detailPcName').innerText = item.pcName;
+                document.getElementById('detailDesk').innerText = item.desk || '-';
                 pcContainer.classList.remove('hidden');
             } else {
                 pcContainer.classList.add('hidden');
@@ -1632,7 +1649,7 @@
                             </div>
                         </div>
                     </td>
-                    <td class="py-4 px-6 text-slate-700 font-medium">${escapeHtml(item.room)}</td>
+                    <td class="py-4 px-6 text-slate-700 font-medium">${escapeHtml(item.room)}${item.desk ? `<div class="text-xs text-slate-400 font-normal">${escapeHtml(item.desk)}</div>` : ''}</td>
                     <td class="py-4 px-6">${conditionBadge}</td>
                     <td class="py-4 px-6 text-center font-semibold text-slate-700">${item.quantity}</td>
                     <td class="py-4 px-6 text-right">
@@ -1684,14 +1701,18 @@
             const category = document.getElementById('itemCategory').value;
             const pcNameWrapper = document.getElementById('pcNameWrapper');
             const pcNameInput = document.getElementById('itemPcName');
+            const deskInput = document.getElementById('itemDesk');
             
             if (category === 'PC') {
                 pcNameWrapper.classList.remove('hidden');
                 pcNameInput.required = true;
+                deskInput.required = true;
             } else {
                 pcNameWrapper.classList.add('hidden');
                 pcNameInput.required = false;
                 pcNameInput.value = '';
+                deskInput.required = false;
+                deskInput.value = '';
             }
         }
 
@@ -1796,15 +1817,17 @@
             const quantity = parseInt(document.getElementById('itemQuantity').value);
             const condition = document.getElementById('itemCondition').value;
             const pcName = document.getElementById('itemPcName').value.trim();
+            const desk = document.getElementById('itemDesk').value.trim();
 
-            if (!name || !room || !category || !quantity || !condition || (category === 'PC' && !pcName)) {
+            if (!name || !room || !category || !quantity || !condition || (category === 'PC' && (!pcName || !desk))) {
                 showToast("Mohon isi semua kolom bertanda bintang (*)", "danger");
                 return;
             }
 
             const payload = keSupabaseBarang({
                 name, room, category, quantity, condition,
-                pcName: category === 'PC' ? pcName : undefined
+                pcName: category === 'PC' ? pcName : undefined,
+                desk: category === 'PC' ? desk : undefined
             });
 
             const btnSubmit = document.querySelector('#itemForm button[type="submit"]');
@@ -1864,6 +1887,7 @@
             document.getElementById('itemCondition').value = item.condition;
             
             document.getElementById('itemPcName').value = item.pcName || '';
+            document.getElementById('itemDesk').value = item.desk || '';
             togglePcNameField();
 
             const modal = document.getElementById('itemModal');
